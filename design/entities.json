@@ -1,0 +1,8 @@
+[
+  {"name": "world",    "order": 1, "multiple": false, "source": "none", "description": "État global de la partie."},
+  {"name": "units",    "order": 2, "multiple": true,  "source": "(allUnits + (if (A3B_cfg_include_dead) then {allDeadMen} else {[]})) select {_x isKindOf \"CAManBase\"}", "description": "Soldats et joueurs (morts compris si include_dead)."},
+  {"name": "vehicles", "order": 3, "multiple": true,  "source": "vehicles select {_x isKindOf \"AllVehicles\" && {!(_x isKindOf \"CAManBase\")}}", "description": "Véhicules terrestres, aériens, navals et armes fixes."},
+  {"name": "groups",   "order": 4, "multiple": true,  "source": "allGroups select {count units _x > 0}", "description": "Groupes d'IA et de joueurs non vides."},
+  {"name": "objects",  "order": 5, "multiple": true,  "source": "(A3B_objects select {!isNull _x}) select [0, A3B_cfg_max_objects]", "description": "Objets posés par le scénario ou créés par spawn_object (hors décor de la carte)."},
+  {"name": "markers",  "order": 6, "multiple": true,  "source": "allMapMarkers", "description": "Marqueurs de la carte (scénario, joueurs et set_marker)."}
+]

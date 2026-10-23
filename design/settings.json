@@ -1,0 +1,17 @@
+[
+  {"key": "port",                   "type": "number",  "default": 8765,  "to_sqf": false, "description": "Port local (127.0.0.1) de la passerelle HTTP + WebSocket."},
+  {"key": "state_interval_ms",      "type": "number",  "default": 100,   "to_sqf": true,  "description": "Intervalle entre deux photos de l'état, en millisecondes."},
+  {"key": "include_dead",           "type": "boolean", "default": true,  "to_sqf": true,  "description": "Inclure les soldats morts dans la liste des unités."},
+  {"key": "max_objects",            "type": "number",  "default": 500,   "to_sqf": true,  "description": "Nombre maximal d'objets envoyés dans l'état."},
+  {"key": "fired_events",           "type": "boolean", "default": true,  "to_sqf": true,  "description": "Envoyer un événement à chaque tir."},
+  {"key": "max_commands_per_frame", "type": "number",  "default": 25,    "to_sqf": true,  "description": "Nombre maximal d'ordres exécutés par image du jeu."},
+  {"key": "chunk_size",             "type": "number",  "default": 4000,  "to_sqf": true,  "description": "Taille des morceaux de texte envoyés du jeu vers la passerelle."},
+  {"key": "command_timeout_ms",     "type": "number",  "default": 10000, "to_sqf": false, "description": "Délai maximal d'attente du résultat d'un ordre."},
+  {"key": "event_history",          "type": "number",  "default": 2000,  "to_sqf": false, "description": "Nombre d'événements gardés en mémoire pour GET /events."},
+  {"key": "max_clients",            "type": "number",  "default": 16,    "to_sqf": false, "description": "Nombre maximal de clients WebSocket simultanés."},
+  {"key": "catalog_export",         "type": "boolean", "default": true,  "to_sqf": true,  "description": "Lire le catalogue du jeu (classes plaçables, groupes, marqueurs) au démarrage de chaque partie, pour GET /catalog et la page web."},
+  {"key": "map_export",             "type": "boolean", "default": true,  "to_sqf": true,  "description": "Construire la carte de fond de la page web à la première partie sur chaque carte (mise en cache ensuite)."},
+  {"key": "map_height_cell_m",      "type": "number",  "default": 16,    "to_sqf": true,  "description": "Taille visée d'une case de relief, en mètres."},
+  {"key": "map_max_cells",          "type": "number",  "default": 512,   "to_sqf": true,  "description": "Nombre maximal de cases de relief par côté (limite la durée de l'export sur les grandes cartes)."},
+  {"key": "map_forest_cell_m",      "type": "number",  "default": 64,    "to_sqf": true,  "description": "Taille d'une case de densité de forêt, en mètres (256 cases par côté au plus)."}
+]

@@ -1,0 +1,53 @@
+[
+  {"section": "units",         "order": 1, "field": "class",    "sqf": "configName _x", "description": "Nom de classe à passer à spawn_unit."},
+  {"section": "units",         "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché dans le jeu."},
+  {"section": "units",         "order": 3, "field": "side",     "sqf": "[\"east\", \"west\", \"independent\", \"civilian\"] param [getNumber (_x >> \"side\"), \"unknown\"]", "description": "Camp."},
+  {"section": "units",         "order": 4, "field": "faction",  "sqf": "getText (configFile >> \"CfgFactionClasses\" >> getText (_x >> \"faction\") >> \"displayName\")", "description": "Faction (OTAN, CSAT, AAF, FIA...)."},
+  {"section": "units",         "order": 5, "field": "category", "sqf": "getText (configFile >> \"CfgEditorSubcategories\" >> getText (_x >> \"editorSubcategory\") >> \"displayName\")", "description": "Catégorie de l'éditeur (Hommes, Forces spéciales...)."},
+  {"section": "units",         "order": 6, "field": "dlc",      "sqf": "getText (_x >> \"dlc\")", "description": "DLC ou mod d'origine (vide = jeu de base)."},
+
+  {"section": "vehicles",      "order": 1, "field": "class",    "sqf": "configName _x", "description": "Nom de classe à passer à spawn_vehicle."},
+  {"section": "vehicles",      "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché dans le jeu."},
+  {"section": "vehicles",      "order": 3, "field": "side",     "sqf": "[\"east\", \"west\", \"independent\", \"civilian\"] param [getNumber (_x >> \"side\"), \"unknown\"]", "description": "Camp de l'équipage par défaut."},
+  {"section": "vehicles",      "order": 4, "field": "faction",  "sqf": "getText (configFile >> \"CfgFactionClasses\" >> getText (_x >> \"faction\") >> \"displayName\")", "description": "Faction."},
+  {"section": "vehicles",      "order": 5, "field": "kind",     "sqf": "call {private _c = configName _x; if (_c isKindOf \"Helicopter\") exitWith {\"helicopter\"}; if (_c isKindOf \"Plane\") exitWith {\"plane\"}; if (_c isKindOf \"Ship\") exitWith {\"boat\"}; if (_c isKindOf \"StaticWeapon\") exitWith {\"static\"}; if (_c isKindOf \"Tank\") exitWith {\"tank\"}; if (_c isKindOf \"Car\") exitWith {\"car\"}; \"other\"}", "description": "Genre : car, tank, helicopter, plane, boat, static, other."},
+  {"section": "vehicles",      "order": 6, "field": "category", "sqf": "getText (configFile >> \"CfgEditorSubcategories\" >> getText (_x >> \"editorSubcategory\") >> \"displayName\")", "description": "Catégorie de l'éditeur."},
+  {"section": "vehicles",      "order": 7, "field": "dlc",      "sqf": "getText (_x >> \"dlc\")", "description": "DLC ou mod d'origine."},
+
+  {"section": "objects",       "order": 1, "field": "class",    "sqf": "configName _x", "description": "Nom de classe à passer à spawn_object."},
+  {"section": "objects",       "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché dans l'éditeur."},
+  {"section": "objects",       "order": 3, "field": "category", "sqf": "getText (configFile >> \"CfgEditorCategories\" >> getText (_x >> \"editorCategory\") >> \"displayName\")", "description": "Catégorie de l'éditeur (Fortifications, Caisses...)."},
+  {"section": "objects",       "order": 4, "field": "subcategory", "sqf": "getText (configFile >> \"CfgEditorSubcategories\" >> getText (_x >> \"editorSubcategory\") >> \"displayName\")", "description": "Sous-catégorie de l'éditeur."},
+  {"section": "objects",       "order": 5, "field": "dlc",      "sqf": "getText (_x >> \"dlc\")", "description": "DLC ou mod d'origine."},
+
+  {"section": "groups",        "order": 1, "field": "path",     "sqf": "((configHierarchy _x) select [2]) apply {configName _x} joinString \"/\"", "description": "Chemin à passer à spawn_group (camp/faction/catégorie/groupe)."},
+  {"section": "groups",        "order": 2, "field": "name",     "sqf": "getText (_x >> \"name\")", "description": "Nom affiché du groupe."},
+  {"section": "groups",        "order": 3, "field": "side",     "sqf": "[\"east\", \"west\", \"independent\", \"civilian\"] param [getNumber (_x >> \"side\"), \"unknown\"]", "description": "Camp."},
+  {"section": "groups",        "order": 4, "field": "faction",  "sqf": "getText (configFile >> \"CfgFactionClasses\" >> getText (_x >> \"faction\") >> \"displayName\")", "description": "Faction."},
+  {"section": "groups",        "order": 5, "field": "category", "sqf": "getText ((configHierarchy _x select 4) >> \"name\")", "description": "Catégorie (Infanterie, Motorisé, Mécanisé...)."},
+  {"section": "groups",        "order": 6, "field": "size",     "sqf": "count (\"isClass _x\" configClasses _x)", "description": "Nombre d'unités et de véhicules du groupe."},
+
+  {"section": "weapons",       "order": 1, "field": "class",    "sqf": "configName _x", "description": "Classe à mettre dans fill_crate."},
+  {"section": "weapons",       "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché."},
+  {"section": "weapons",       "order": 3, "field": "kind",     "sqf": "[\"\", \"primary\", \"handgun\", \"\", \"launcher\", \"primary\"] param [getNumber (_x >> \"type\"), \"other\"]", "description": "Genre : primary (fusil, mitrailleuse), handgun, launcher."},
+  {"section": "weapons",       "order": 4, "field": "dlc",      "sqf": "getText (_x >> \"dlc\")", "description": "DLC ou mod d'origine."},
+
+  {"section": "magazines",     "order": 1, "field": "class",    "sqf": "configName _x", "description": "Classe à mettre dans fill_crate."},
+  {"section": "magazines",     "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché."},
+  {"section": "magazines",     "order": 3, "field": "rounds",   "sqf": "getNumber (_x >> \"count\")", "description": "Nombre de coups."},
+
+  {"section": "gear",          "order": 1, "field": "class",    "sqf": "configName _x", "description": "Classe à mettre dans fill_crate."},
+  {"section": "gear",          "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché."},
+  {"section": "gear",          "order": 3, "field": "kind",     "sqf": "switch (getNumber (_x >> \"ItemInfo\" >> \"type\")) do {case 101: {\"muzzle\"}; case 201: {\"optic\"}; case 301: {\"pointer\"}; case 302: {\"bipod\"}; case 605: {\"headgear\"}; case 701: {\"vest\"}; case 801: {\"uniform\"}; case 616: {\"nvg\"}; default {\"item\"}}", "description": "Genre : muzzle, optic, pointer, bipod, headgear, vest, uniform, nvg ou item (soin, outils...)."},
+
+  {"section": "backpacks",     "order": 1, "field": "class",    "sqf": "configName _x", "description": "Classe à mettre dans fill_crate."},
+  {"section": "backpacks",     "order": 2, "field": "name",     "sqf": "getText (_x >> \"displayName\")", "description": "Nom affiché."},
+  {"section": "backpacks",     "order": 3, "field": "capacity", "sqf": "getNumber (_x >> \"maximumLoad\")", "description": "Capacité."},
+
+  {"section": "marker_types",  "order": 1, "field": "class",    "sqf": "configName _x", "description": "Type à passer à set_marker."},
+  {"section": "marker_types",  "order": 2, "field": "name",     "sqf": "getText (_x >> \"name\")", "description": "Nom affiché."},
+
+  {"section": "marker_colors", "order": 1, "field": "class",    "sqf": "configName _x", "description": "Couleur à passer à set_marker."},
+  {"section": "marker_colors", "order": 2, "field": "name",     "sqf": "getText (_x >> \"name\")", "description": "Nom affiché."},
+  {"section": "marker_colors", "order": 3, "field": "rgba",     "sqf": "(getArray (_x >> \"color\")) apply {if (_x isEqualType \"\") then {call compile _x} else {_x}}", "description": "Couleur [rouge, vert, bleu, opacité] entre 0 et 1. Les couleurs de camp dépendent du profil du joueur : un serveur dédié renvoie des valeurs par défaut, que la page web remplace par les couleurs standard des camps."}
+]

@@ -1,0 +1,3 @@
+# The GNU toolchain has no dlltool; getrandom's legacy Windows backend links advapi32 normally instead.
+[build]
+rustflags = ["--cfg", "getrandom_backend=\"windows_legacy\""]

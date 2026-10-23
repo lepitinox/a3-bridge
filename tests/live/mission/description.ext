@@ -1,0 +1,12 @@
+class Header
+{
+	gameType = Sandbox;
+	minPlayers = 1;
+	maxPlayers = 2;
+};
+onLoadName = "A3 Bridge test (Zeus)";
+onLoadMission = "Banc de test A3 Bridge : chaque joueur reçoit Zeus (touche Y).";
+disabledAI = 1;
+respawn = "INSTANT";
+respawnDelay = 5;
+respawnOnStart = -1;

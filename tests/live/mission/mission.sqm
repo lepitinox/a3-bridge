@@ -1,0 +1,94 @@
+version=12;
+class Mission
+{
+	addOns[]={};
+	addOnsAuto[]={};
+	randomSeed=4242;
+	class Intel
+	{
+		startWeather=0.2;
+		forecastWeather=0.2;
+		year=2035;
+		month=6;
+		day=24;
+		hour=12;
+		minute=0;
+	};
+	class Groups
+	{
+		items=1;
+		class Item0
+		{
+			side="WEST";
+			class Vehicles
+			{
+				items=2;
+				class Item0
+				{
+					position[]={2920,0,5990};
+					id=0;
+					side="WEST";
+					vehicle="B_Soldier_TL_F";
+					player="PLAY CDG";
+					leader=1;
+					skill=0.6;
+					text="zeus_1";
+					description="Zeus 1";
+				};
+				class Item1
+				{
+					position[]={2923,0,5990};
+					id=1;
+					side="WEST";
+					vehicle="B_Soldier_F";
+					player="PLAY CDG";
+					skill=0.6;
+					text="zeus_2";
+					description="Zeus 2";
+				};
+			};
+		};
+	};
+};
+class Intro
+{
+	addOns[]={};
+	addOnsAuto[]={};
+	randomSeed=1;
+	class Intel
+	{
+		year=2035;
+		month=6;
+		day=24;
+		hour=12;
+		minute=0;
+	};
+};
+class OutroWin
+{
+	addOns[]={};
+	addOnsAuto[]={};
+	randomSeed=1;
+	class Intel
+	{
+		year=2035;
+		month=6;
+		day=24;
+		hour=12;
+		minute=0;
+	};
+};
+class OutroLoose
+{
+	addOns[]={};
+	addOnsAuto[]={};
+	randomSeed=1;
+	class Intel
+	{
+		year=2035;
+		month=6;
+		day=24;
+		hour=12;
+		minute=0;
+	};
+};

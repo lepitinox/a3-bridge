@@ -1,0 +1,1428 @@
+[
+  {
+    "name": "arma_spawn_unit",
+    "description": "Crée un soldat (IA) à une position. Il rejoint un groupe existant ou un nouveau groupe du camp choisi. Renvoie : id, group.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "unit_class",
+          "description": "Classe du soldat, par ex. B_Soldier_F. (Classe de soldat du jeu (CfgVehicles), par ex. B_Soldier_F ; voir GET /catalog, section units.)",
+          "examples": [
+            "B_Soldier_F",
+            "B_Soldier_TL_F",
+            "B_medic_F",
+            "B_soldier_AR_F",
+            "O_Soldier_F",
+            "O_Soldier_SL_F",
+            "I_Soldier_F",
+            "C_man_1"
+          ]
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position d'apparition. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "west",
+            "east",
+            "independent",
+            "civilian"
+          ],
+          "title": "side",
+          "description": "Camp du nouveau groupe (ignoré si group est donné). (Camp : west (OTAN), east (CSAT), independent (AAF), civilian.)",
+          "default": "west"
+        },
+        "group": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe à rejoindre ; none = nouveau groupe. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)",
+          "default": "none"
+        },
+        "dir": {
+          "type": "number",
+          "title": "number",
+          "description": "Orientation en degrés (0 = nord). (Nombre (entier ou décimal).)",
+          "default": 0
+        },
+        "skill": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "title": "ratio",
+          "description": "Compétence de l'IA entre 0 et 1. (Nombre entre 0 et 1.)",
+          "default": 0.5
+        }
+      },
+      "required": [
+        "type",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_spawn_vehicle",
+    "description": "Crée un véhicule à une position, vide ou avec son équipage IA. Renvoie : id, crew, group.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "vehicle_class",
+          "description": "Classe du véhicule, par ex. B_MRAP_01_F. (Classe de véhicule du jeu (CfgVehicles), par ex. B_MRAP_01_F ; voir GET /catalog, section vehicles.)",
+          "examples": [
+            "B_MRAP_01_F",
+            "B_MRAP_01_hmg_F",
+            "B_APC_Wheeled_01_cannon_F",
+            "B_Heli_Light_01_F",
+            "O_MRAP_02_F",
+            "O_APC_Tracked_02_cannon_F",
+            "I_MRAP_03_F",
+            "C_Offroad_01_F"
+          ]
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position d'apparition. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "dir": {
+          "type": "number",
+          "title": "number",
+          "description": "Orientation en degrés. (Nombre (entier ou décimal).)",
+          "default": 0
+        },
+        "crew": {
+          "type": "boolean",
+          "title": "boolean",
+          "description": "true = crée aussi l'équipage IA. (true ou false.)",
+          "default": false
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "default",
+            "west",
+            "east",
+            "independent",
+            "civilian"
+          ],
+          "title": "side_or_default",
+          "description": "Camp de l'équipage ; default = camp prévu pour ce véhicule. (Camp, ou default pour le camp prévu par le jeu.)",
+          "default": "default"
+        }
+      },
+      "required": [
+        "type",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_spawn_object",
+    "description": "Crée un objet (caisse, sac de sable, etc.) à une position. Il apparaît ensuite dans la liste des objets du flux d'état. Renvoie : id.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "object_class",
+          "description": "Classe de l'objet, par ex. Box_NATO_Ammo_F. (Classe d'objet du jeu (CfgVehicles), par ex. Box_NATO_Ammo_F ; voir GET /catalog, section objects.)",
+          "examples": [
+            "Box_NATO_Ammo_F",
+            "Box_East_Ammo_F",
+            "Land_BagFence_Long_F",
+            "Land_HBarrier_5_F",
+            "Land_CampingTable_F",
+            "Land_Cargo_Patrol_V1_F"
+          ]
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "dir": {
+          "type": "number",
+          "title": "number",
+          "description": "Orientation en degrés. (Nombre (entier ou décimal).)",
+          "default": 0
+        }
+      },
+      "required": [
+        "type",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_delete",
+    "description": "Supprime une unité, un véhicule (avec son équipage), un objet ou un groupe entier. Renvoie : id.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Identifiant de l'unité, du véhicule, de l'objet ou du groupe. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_move",
+    "description": "Ordonne à une unité ou à un groupe de se rendre à une position (à pied ou en véhicule), comme un vrai ordre de déplacement. Renvoie : id, group.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Unité ou groupe à déplacer. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Destination. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_teleport",
+    "description": "Déplace instantanément une unité, un véhicule, un objet ou un groupe à une position. Renvoie : id.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Unité, véhicule, objet ou groupe. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Nouvelle position. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "dir": {
+          "type": "number",
+          "title": "number",
+          "description": "Nouvelle orientation en degrés ; -1 = inchangée. (Nombre (entier ou décimal).)",
+          "default": -1
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_set_behaviour",
+    "description": "Change le comportement, la règle de tir, la vitesse, la formation et la posture d'un groupe (ou du groupe d'une unité). Renvoie : group, behaviour, combat_mode, speed_mode, formation.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe, ou unité (son groupe sera modifié). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "behaviour": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "careless",
+            "safe",
+            "aware",
+            "combat",
+            "stealth"
+          ],
+          "title": "behaviour",
+          "description": "Comportement. (Comportement du groupe.)",
+          "default": "unchanged"
+        },
+        "combat_mode": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "blue",
+            "green",
+            "white",
+            "yellow",
+            "red"
+          ],
+          "title": "combat_mode",
+          "description": "Règle de tir. (Règle de tir : blue = ne jamais tirer, green = riposte sans bouger, white = riposte, yellow = tir libre en gardant la formation, red = tir libre et engagement.)",
+          "default": "unchanged"
+        },
+        "speed_mode": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "limited",
+            "normal",
+            "full"
+          ],
+          "title": "speed_mode",
+          "description": "Vitesse. (Vitesse de déplacement du groupe.)",
+          "default": "unchanged"
+        },
+        "formation": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "column",
+            "stag_column",
+            "wedge",
+            "ech_left",
+            "ech_right",
+            "vee",
+            "line",
+            "file",
+            "diamond"
+          ],
+          "title": "formation",
+          "description": "Formation. (Formation du groupe.)",
+          "default": "unchanged"
+        },
+        "stance": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "auto",
+            "up",
+            "middle",
+            "down"
+          ],
+          "title": "stance",
+          "description": "Posture imposée à tous les soldats du groupe. (Posture imposée aux soldats : auto, debout, accroupi, couché.)",
+          "default": "unchanged"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_set_health",
+    "description": "Fixe la santé d'une unité, d'un véhicule ou d'un objet : 1 = intact (soigne), 0 = détruit (tue). Renvoie : id, health, alive.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Unité, véhicule ou objet. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "health": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "title": "ratio",
+          "description": "1 = intact, 0 = mort ou détruit. (Nombre entre 0 et 1.)"
+        }
+      },
+      "required": [
+        "id",
+        "health"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_message",
+    "description": "Affiche un message à l'écran des joueurs (tous ou un camp). Renvoie : delivered_to.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "string",
+          "description": "Texte du message. (Texte libre.)",
+          "examples": [
+            "Contact au nord !",
+            "Bienvenue sur le serveur de test"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "system",
+            "hint",
+            "title",
+            "side_chat",
+            "subtitle"
+          ],
+          "title": "message_kind",
+          "description": "Forme du message. (Forme du message : system (chat système), hint (encadré), title (texte au centre de l'écran), side_chat (radio du camp, signé HQ), subtitle (sous-titre signé HQ).)",
+          "default": "system"
+        },
+        "to": {
+          "type": "string",
+          "enum": [
+            "all",
+            "west",
+            "east",
+            "independent",
+            "civilian"
+          ],
+          "title": "audience",
+          "description": "Destinataires. (Destinataires : tous les joueurs ou un camp.)",
+          "default": "all"
+        },
+        "sender": {
+          "type": "string",
+          "title": "string",
+          "description": "Expéditeur affiché (radio et sous-titre). (Texte libre.)",
+          "default": "HQ",
+          "examples": [
+            "HQ",
+            "Commandant IA",
+            "Overlord"
+          ]
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_set_environment",
+    "description": "Change l'heure et la météo. Les paramètres laissés à -1 ne changent pas. Renvoie : daytime, overcast, rain, fog.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 24.0,
+          "title": "hours",
+          "description": "Heure du jour (0-24), -1 = inchangée. (Heure du jour en heures décimales (14.5 = 14h30), ou -1 pour ne rien changer.)",
+          "default": -1
+        },
+        "overcast": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "title": "keep_or_ratio",
+          "description": "Couverture nuageuse 0-1, -1 = inchangée. (Nombre entre 0 et 1, ou -1 pour ne rien changer.)",
+          "default": -1
+        },
+        "rain": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "title": "keep_or_ratio",
+          "description": "Pluie 0-1 (nécessite des nuages), -1 = inchangée. (Nombre entre 0 et 1, ou -1 pour ne rien changer.)",
+          "default": -1
+        },
+        "fog": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "title": "keep_or_ratio",
+          "description": "Brouillard 0-1, -1 = inchangé. (Nombre entre 0 et 1, ou -1 pour ne rien changer.)",
+          "default": -1
+        },
+        "transition": {
+          "type": "number",
+          "title": "number",
+          "description": "Durée de transition de la météo en secondes ; 0 = immédiat. (Nombre (entier ou décimal).)",
+          "default": 0
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_spawn_group",
+    "description": "Fait apparaître un groupe officiel du jeu (escouade, équipe, peloton, convoi) en formation, avec ses véhicules. Renvoie : group, units, vehicles.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string",
+          "title": "group_path",
+          "description": "Groupe officiel à faire apparaître. (Groupe officiel du jeu : chemin CfgGroups camp/faction/catégorie/groupe, par ex. West/BLU_F/Infantry/BUS_InfSquad ; voir GET /catalog, section groups.)",
+          "examples": [
+            "West/BLU_F/Infantry/BUS_InfSquad",
+            "West/BLU_F/Infantry/BUS_InfTeam",
+            "West/BLU_F/Motorized/BUS_MotInf_Team",
+            "East/OPF_F/Infantry/OIA_InfSquad",
+            "East/OPF_F/Mechanized/OIA_MechInfSquad",
+            "Indep/IND_F/Infantry/HAF_InfSquad"
+          ]
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position du chef ; les autres se placent en formation autour. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "dir": {
+          "type": "number",
+          "title": "number",
+          "description": "Orientation du groupe en degrés. (Nombre (entier ou décimal).)",
+          "default": 0
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "default",
+            "west",
+            "east",
+            "independent",
+            "civilian"
+          ],
+          "title": "side_or_default",
+          "description": "Camp ; default = camp prévu par le groupe. (Camp, ou default pour le camp prévu par le jeu.)",
+          "default": "default"
+        }
+      },
+      "required": [
+        "group",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_spawn_effect",
+    "description": "Fait apparaître un effet ou une munition à une position : tir d'artillerie ou de mortier, bombe, roquettes, grenade, fumigène, écran de fumée, fusée éclairante, mine ou IED. Plusieurs coups possibles, avec dispersion et délai. Renvoie : effect, count.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "effect": {
+          "type": "string",
+          "enum": [
+            "artillery",
+            "mortar",
+            "bomb",
+            "rockets",
+            "grenade",
+            "smoke_white",
+            "smoke_red",
+            "smoke_green",
+            "smoke_blue",
+            "smoke_screen",
+            "flare_white",
+            "flare_red",
+            "flare_green",
+            "mine_at",
+            "mine_ap",
+            "ied"
+          ],
+          "title": "effect",
+          "description": "Effet ou munition à faire apparaître. (Effet ou munition (voir le tableau des effets) : artillerie, mortier, bombe, roquettes, grenade, fumigènes, écran de fumée, fusées éclairantes, mines, IED.)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Point visé (au sol). (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "count": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 50.0,
+          "title": "count",
+          "description": "Nombre de coups. (Nombre entier entre 1 et 50.)",
+          "default": 1
+        },
+        "spread": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Dispersion autour du point visé, en mètres. (Distance en mètres (0 à 5000).)",
+          "default": 0
+        },
+        "delay": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 60.0,
+          "title": "seconds",
+          "description": "Délai entre deux coups, en secondes. (Durée en secondes (0 à 60).)",
+          "default": 1
+        }
+      },
+      "required": [
+        "effect",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_set_marker",
+    "description": "Crée un marqueur sur la carte des joueurs, ou modifie un marqueur existant du même nom (icône, couleur, texte, zone rectangulaire ou elliptique). Renvoie : name.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "marker_name",
+          "description": "Nom du marqueur à créer ou à modifier ; auto = nouveau marqueur. (Nom unique du marqueur ; auto = nom généré.)",
+          "default": "auto"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position du marqueur. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "text": {
+          "type": "string",
+          "title": "string",
+          "description": "Texte affiché à côté du marqueur (none = aucun). (Texte libre.)",
+          "default": "none"
+        },
+        "type": {
+          "type": "string",
+          "title": "marker_type",
+          "description": "Icône (formes icon seulement). (Icône de marqueur (CfgMarkers), par ex. mil_dot, mil_objective, hd_flag ; voir GET /catalog, section marker_types.)",
+          "default": "mil_dot",
+          "examples": [
+            "mil_dot",
+            "mil_objective",
+            "mil_warning",
+            "mil_destroy",
+            "mil_flag",
+            "mil_marker",
+            "hd_flag",
+            "hd_objective"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "title": "marker_color",
+          "description": "Couleur. (Couleur de marqueur (CfgMarkerColors), par ex. ColorRed, ColorBLUFOR ; voir GET /catalog, section marker_colors.)",
+          "default": "ColorBlack",
+          "examples": [
+            "ColorBlack",
+            "ColorRed",
+            "ColorBlue",
+            "ColorGreen",
+            "ColorYellow",
+            "ColorOrange",
+            "ColorWhite",
+            "ColorBLUFOR",
+            "ColorOPFOR",
+            "ColorIndependent"
+          ]
+        },
+        "shape": {
+          "type": "string",
+          "enum": [
+            "icon",
+            "rectangle",
+            "ellipse"
+          ],
+          "title": "marker_shape",
+          "description": "Forme : icône, rectangle ou ellipse. (Forme du marqueur : icon (icône + texte), rectangle ou ellipse (zone).)",
+          "default": "icon"
+        },
+        "size_x": {
+          "type": "number",
+          "title": "number",
+          "description": "Taille : échelle de l'icône, ou demi-largeur de la zone en mètres. (Nombre (entier ou décimal).)",
+          "default": 1
+        },
+        "size_y": {
+          "type": "number",
+          "title": "number",
+          "description": "Taille : échelle de l'icône, ou demi-hauteur de la zone en mètres. (Nombre (entier ou décimal).)",
+          "default": 1
+        },
+        "dir": {
+          "type": "number",
+          "title": "number",
+          "description": "Orientation en degrés. (Nombre (entier ou décimal).)",
+          "default": 0
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "title": "ratio",
+          "description": "Opacité entre 0 et 1. (Nombre entre 0 et 1.)",
+          "default": 1
+        }
+      },
+      "required": [
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_delete_marker",
+    "description": "Supprime un marqueur de la carte des joueurs. Renvoie : name.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "marker_name",
+          "description": "Nom du marqueur à supprimer. (Nom unique du marqueur ; auto = nom généré.)"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_add_waypoint",
+    "description": "Ajoute un point de passage à un groupe (aller, chercher et détruire, garder, tenir, monter ou descendre d'un véhicule, débarquer, boucle de patrouille...), à la suite des autres ou en remplaçant le plan en cours. Renvoie : group, index, waypoints.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe, ou unité (son groupe recevra le point). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position du point de passage. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "move",
+            "sad",
+            "destroy",
+            "guard",
+            "hold",
+            "sentry",
+            "get_in",
+            "get_out",
+            "unload",
+            "transport_unload",
+            "loiter",
+            "cycle",
+            "dismiss"
+          ],
+          "title": "waypoint_type",
+          "description": "Type de point de passage. (Type de point de passage : move (aller), sad (chercher et détruire), destroy, guard (garder), hold (tenir), sentry (sentinelle), get_in (monter dans le véhicule le plus proche), get_out (descendre), unload (débarquer les passagers), transport_unload, loiter (tourner, aéronefs), cycle (revenir au premier point : patrouille), dismiss (quartier libre).)",
+          "default": "move"
+        },
+        "replace": {
+          "type": "boolean",
+          "title": "boolean",
+          "description": "true = efface le plan en cours et part tout de suite vers ce point ; false = l'ajoute à la suite. (true ou false.)",
+          "default": false
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Rayon de placement aléatoire du point, en mètres. (Distance en mètres (0 à 5000).)",
+          "default": 0
+        },
+        "behaviour": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "careless",
+            "safe",
+            "aware",
+            "combat",
+            "stealth"
+          ],
+          "title": "behaviour",
+          "description": "Comportement adopté en atteignant ce point. (Comportement du groupe.)",
+          "default": "unchanged"
+        },
+        "combat_mode": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "blue",
+            "green",
+            "white",
+            "yellow",
+            "red"
+          ],
+          "title": "combat_mode",
+          "description": "Règle de tir adoptée en atteignant ce point. (Règle de tir : blue = ne jamais tirer, green = riposte sans bouger, white = riposte, yellow = tir libre en gardant la formation, red = tir libre et engagement.)",
+          "default": "unchanged"
+        },
+        "speed_mode": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "limited",
+            "normal",
+            "full"
+          ],
+          "title": "speed_mode",
+          "description": "Vitesse sur ce tronçon. (Vitesse de déplacement du groupe.)",
+          "default": "unchanged"
+        },
+        "formation": {
+          "type": "string",
+          "enum": [
+            "unchanged",
+            "column",
+            "stag_column",
+            "wedge",
+            "ech_left",
+            "ech_right",
+            "vee",
+            "line",
+            "file",
+            "diamond"
+          ],
+          "title": "formation",
+          "description": "Formation sur ce tronçon. (Formation du groupe.)",
+          "default": "unchanged"
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_patrol",
+    "description": "Fait patrouiller un groupe en boucle autour d'un point (points de passage aléatoires, fonction officielle BIS_fnc_taskPatrol). Renvoie : group, waypoints.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe, ou unité (son groupe patrouillera). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Centre de la zone de patrouille. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Rayon de la patrouille en mètres. (Distance en mètres (0 à 5000).)",
+          "default": 200
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_defend",
+    "description": "Fait défendre une zone à un groupe : les soldats occupent les positions dans les bâtiments proches, les autres se postent autour du point. Renvoie : group, garrisoned, positions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe, ou unité (son groupe défendra). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Point à défendre. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Rayon dans lequel chercher des bâtiments à occuper. (Distance en mètres (0 à 5000).)",
+          "default": 100
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_attack",
+    "description": "Ordonne à un groupe d'attaquer une cible (unité, véhicule ou groupe) : il la repère, la suit et ouvre le feu. Renvoie : group, target.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe qui attaque, ou unité (son groupe attaquera). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "target": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Cible : unité, véhicule ou groupe (son chef sera visé). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        }
+      },
+      "required": [
+        "id",
+        "target"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_artillery_fire",
+    "description": "Fait tirer une vraie pièce d'artillerie ou un mortier (avec son tireur) sur une position, avec ses propres munitions. Renvoie le temps de vol en secondes. Renvoie : id, magazine, eta.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Pièce d'artillerie ou mortier (véhicule avec tireur), ou son tireur. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Point visé. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "rounds": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 50.0,
+          "title": "count",
+          "description": "Nombre d'obus. (Nombre entier entre 1 et 50.)",
+          "default": 3
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_vehicle_crew",
+    "description": "Fait monter des soldats (une unité ou tout un groupe) dans un véhicule, ou les en fait descendre, en marchant ou instantanément. Renvoie : id, count.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Soldat ou groupe. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "get_in",
+            "get_out"
+          ],
+          "title": "crew_action",
+          "description": "get_in = monter, get_out = descendre. (Monter dans un véhicule ou en descendre.)"
+        },
+        "vehicle": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Véhicule où monter (obligatoire pour get_in). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)",
+          "default": "none"
+        },
+        "instant": {
+          "type": "boolean",
+          "title": "boolean",
+          "description": "true = instantané (téléporté à bord ou dehors) ; false = les soldats y vont à pied. (true ou false.)",
+          "default": false
+        }
+      },
+      "required": [
+        "id",
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_paradrop",
+    "description": "Parachute une unité ou les soldats IA d'un groupe au-dessus d'une position, à l'altitude choisie. Renvoie : id, count.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Soldat IA ou groupe (les joueurs ne sont pas déplacés). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Point au-dessus duquel sauter. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "altitude": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Altitude d'ouverture en mètres. (Distance en mètres (0 à 5000).)",
+          "default": 300
+        }
+      },
+      "required": [
+        "id",
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_set_loadout",
+    "description": "Donne à un soldat l'équipement complet d'une classe de soldat du jeu (armes, munitions, tenue, sac). Renvoie : id, primary_weapon.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Soldat à équiper (IA ou joueur). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "from_class": {
+          "type": "string",
+          "title": "soldier_class",
+          "description": "Classe de soldat dont copier l'équipement. (Classe de soldat dont on copie l'équipement, par ex. B_soldier_AR_F ; voir GET /catalog, section units.)",
+          "examples": [
+            "B_soldier_AR_F",
+            "B_soldier_LAT_F",
+            "B_medic_F",
+            "B_Sharpshooter_F",
+            "O_Soldier_AR_F"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "from_class"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_set_supplies",
+    "description": "Règle le carburant et/ou les munitions d'une unité, d'un véhicule ou de tout un groupe et de ses véhicules. Renvoie : id, count.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Unité, véhicule ou groupe (ses soldats et leurs véhicules). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "fuel": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "title": "keep_or_ratio",
+          "description": "Carburant des véhicules 0-1, -1 = inchangé. (Nombre entre 0 et 1, ou -1 pour ne rien changer.)",
+          "default": -1
+        },
+        "ammo": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "title": "keep_or_ratio",
+          "description": "Munitions 0-1, -1 = inchangées. (Nombre entre 0 et 1, ou -1 pour ne rien changer.)",
+          "default": -1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_fill_crate",
+    "description": "Remplit une caisse ou un véhicule avec des armes, munitions, équipements ou sacs (classes du catalogue), en vidant d'abord si demandé. Renvoie : id, added.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Caisse, objet ou véhicule à remplir. (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        },
+        "items": {
+          "type": "array",
+          "title": "cargo_items",
+          "description": "Liste [[classe, nombre], ...], par ex. [[\"30Rnd_65x39_caseless_mag\", 20], [\"FirstAidKit\", 10]]. (Liste [[classe, nombre], ...] d'armes, munitions, équipements ou sacs ; voir GET /catalog, sections weapons, magazines, gear et backpacks.)"
+        },
+        "clear": {
+          "type": "boolean",
+          "title": "boolean",
+          "description": "true = vide d'abord le contenu. (true ou false.)",
+          "default": false
+        }
+      },
+      "required": [
+        "id",
+        "items"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_query_area",
+    "description": "Question : quelles unités et quels véhicules se trouvent dans un rayon autour d'un point, triés par distance, avec le décompte par camp. Renvoie : units, vehicles, by_side.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Centre de la zone. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Rayon en mètres. (Distance en mètres (0 à 5000).)",
+          "default": 500
+        },
+        "side": {
+          "type": "string",
+          "enum": [
+            "all",
+            "west",
+            "east",
+            "independent",
+            "civilian"
+          ],
+          "title": "side_filter",
+          "description": "Ne garder qu'un camp. (Tous les camps ou un seul.)",
+          "default": "all"
+        }
+      },
+      "required": [
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_query_knowledge",
+    "description": "Question : quels ennemis un camp connaît, avec son niveau de connaissance de chacun (0 à 4) et leur position quand il les a bien repérés. Renvoie : side, targets.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "west",
+            "east",
+            "independent",
+            "civilian"
+          ],
+          "title": "side",
+          "description": "Camp dont on veut la connaissance de l'ennemi. (Camp : west (OTAN), east (CSAT), independent (AAF), civilian.)"
+        },
+        "min_level": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 4.0,
+          "title": "knowledge",
+          "description": "Niveau minimal de connaissance pour lister une cible. (Niveau de connaissance d'une cible par un camp, de 0 (inconnue) à 4 (parfaitement repérée).)",
+          "default": 0.5
+        },
+        "max": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 500.0,
+          "title": "max_results",
+          "description": "Nombre maximal de cibles, les mieux connues d'abord. (Nombre maximal de résultats (1 à 500).)",
+          "default": 50
+        }
+      },
+      "required": [
+        "side"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_query_visibility",
+    "description": "Question : un observateur placé en un point voit-il un autre point ? Renvoie la visibilité de 0 à 1 (bâtiments et végétation compris) et si le relief bloque la vue. Renvoie : visibility, terrain_blocked, distance, height_difference.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position de l'observateur (au sol). (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "to": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position regardée (au sol). (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "from_height": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Hauteur des yeux de l'observateur au-dessus du sol. (Distance en mètres (0 à 5000).)",
+          "default": 1.7
+        },
+        "to_height": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Hauteur du point regardé au-dessus du sol. (Distance en mètres (0 à 5000).)",
+          "default": 1.7
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_query_terrain",
+    "description": "Question : à quoi ressemble le terrain autour d'un point (altitude, eau, pente, lieu le plus proche, routes, bâtiments et places à l'intérieur, arbres). Renvoie : height, water, slope, location, roads, nearest_road, buildings, building_positions, trees.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Point à décrire. (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Rayon pour compter routes, bâtiments et arbres. (Distance en mètres (0 à 5000).)",
+          "default": 150
+        }
+      },
+      "required": [
+        "pos"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_query_cover",
+    "description": "Question : où se mettre à couvert face à une menace ? Teste des points autour d'une position (et les places dans les bâtiments proches) et renvoie ceux que la menace ne voit pas, du plus proche au plus loin. Renvoie : threat, positions, checked.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "pos": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position autour de laquelle chercher un abri (là où se trouvent les soldats). (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "threat": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 3,
+          "title": "position",
+          "description": "Position de la menace (ennemi, mitrailleuse...). (Position [x, y] ou [x, y, z] en mètres ; z = hauteur au-dessus du sol (0 si absent).)"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5000.0,
+          "title": "metres",
+          "description": "Rayon de recherche en mètres. (Distance en mètres (0 à 5000).)",
+          "default": 60
+        },
+        "max": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 500.0,
+          "title": "max_results",
+          "description": "Nombre maximal de positions renvoyées. (Nombre maximal de résultats (1 à 500).)",
+          "default": 8
+        }
+      },
+      "required": [
+        "pos",
+        "threat"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_query_group",
+    "description": "Question : que fait un groupe (comportement, formation, points de passage, ennemis repérés par son chef avec leur distance, état de chaque soldat : santé, chargeurs, véhicule). Renvoie : group, leader, behaviour, combat_mode, speed_mode, formation, current_waypoint, waypoints, ready, known_enemies, units.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "entity_id",
+          "description": "Groupe, ou unité (son groupe sera décrit). (Identifiant attribué par le mod : u12 (soldat), v3 (véhicule), o7 (objet), g4 (groupe).)"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "arma_exec_sqf",
+    "description": "Exécute du code SQF libre sur la machine qui fait tourner le scénario. Les arguments sont disponibles dans _this. Puissant mais sans garde-fou. Renvoie : result.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "title": "code",
+          "description": "Code SQF ; la valeur de la dernière expression est renvoyée. Sans commentaires /* */ ni // : compile ne les retire pas. (Code SQF.)"
+        },
+        "args": {
+          "type": "array",
+          "title": "array",
+          "description": "Arguments passés au code dans _this. (Liste JSON quelconque (nombres, textes, booléens, listes).)",
+          "default": []
+        },
+        "scheduled": {
+          "type": "boolean",
+          "title": "boolean",
+          "description": "true = lance le code en tâche de fond (autorise sleep/waitUntil), sans attendre de résultat. (true ou false.)",
+          "default": false
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

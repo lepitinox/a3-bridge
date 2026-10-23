@@ -1,0 +1,71 @@
+[
+  {"event": "mission_started",     "order": 1, "field": "world",      "type": "string",    "sqf": "worldName",                       "description": "Carte."},
+  {"event": "mission_started",     "order": 2, "field": "mission",    "type": "string",    "sqf": "missionName",                     "description": "Scénario."},
+  {"event": "mission_started",     "order": 3, "field": "dedicated",  "type": "boolean",   "sqf": "isDedicated",                     "description": "Serveur dédié ?"},
+
+  {"event": "killed",              "order": 1, "field": "id",         "type": "entity_id", "sqf": "_unit call A3B_fnc_id",           "description": "Entité tuée."},
+  {"event": "killed",              "order": 2, "field": "type",       "type": "string",    "sqf": "typeOf _unit",                    "description": "Sa classe."},
+  {"event": "killed",              "order": 3, "field": "killer",     "type": "entity_id", "sqf": "_killer call A3B_fnc_id",         "description": "Tueur (vide si inconnu)."},
+  {"event": "killed",              "order": 4, "field": "instigator", "type": "entity_id", "sqf": "_instigator call A3B_fnc_id",     "description": "Personne qui a appuyé sur la détente (vide si inconnu)."},
+  {"event": "killed",              "order": 5, "field": "pos",        "type": "position",  "sqf": "getPosATL _unit",                 "description": "Lieu."},
+
+  {"event": "fired",               "order": 1, "field": "id",         "type": "entity_id", "sqf": "_unit call A3B_fnc_id",           "description": "Tireur."},
+  {"event": "fired",               "order": 2, "field": "weapon",     "type": "string",    "sqf": "_weapon",                         "description": "Arme."},
+  {"event": "fired",               "order": 3, "field": "ammo",       "type": "string",    "sqf": "_ammo",                           "description": "Munition."},
+  {"event": "fired",               "order": 4, "field": "vehicle",    "type": "entity_id", "sqf": "_vehicle call A3B_fnc_id",        "description": "Véhicule depuis lequel il tire (vide si à pied)."},
+  {"event": "fired",               "order": 5, "field": "pos",        "type": "position",  "sqf": "getPosATL vehicle _unit",         "description": "Origine du tir."},
+  {"event": "fired",               "order": 6, "field": "dir",        "type": "array",     "sqf": "(if (isNull _projectile) then {(vehicle _unit) weaponDirection _weapon} else {vectorNormalized velocity _projectile}) apply {(round (_x * 100)) / 100}", "description": "Direction du tir [x, y, z] (vecteur unitaire)."},
+  {"event": "fired",               "order": 7, "field": "kind",       "type": "string",    "sqf": "getText (configFile >> \"CfgAmmo\" >> _ammo >> \"simulation\")", "description": "Type de projectile : shotBullet, shotShell, shotRocket, shotMissile, shotGrenade, shotSmoke..."},
+  {"event": "fired",               "order": 8, "field": "side",       "type": "string",    "sqf": "(side group _unit) call A3B_fnc_sideName", "description": "Camp du tireur."},
+
+  {"event": "player_fired",        "order": 1, "field": "id",         "type": "entity_id", "sqf": "_unit call A3B_fnc_id",           "description": "Joueur qui tire."},
+  {"event": "player_fired",        "order": 2, "field": "weapon",     "type": "string",    "sqf": "_weapon",                         "description": "Arme."},
+  {"event": "player_fired",        "order": 3, "field": "ammo",       "type": "string",    "sqf": "_ammo",                           "description": "Munition."},
+  {"event": "player_fired",        "order": 4, "field": "vehicle",    "type": "entity_id", "sqf": "_vehicle call A3B_fnc_id",        "description": "Véhicule depuis lequel il tire (vide si à pied)."},
+  {"event": "player_fired",        "order": 5, "field": "pos",        "type": "position",  "sqf": "if ((_extra param [0, [0, 0, 0]]) isNotEqualTo [0, 0, 0]) then {_extra select 0} else {getPosATL vehicle _unit}", "description": "Origine du tir (position du projectile au départ, mesurée dans le jeu du joueur)."},
+  {"event": "player_fired",        "order": 6, "field": "dir",        "type": "array",     "sqf": "(if ((_extra param [1, [0, 0, 0]]) isNotEqualTo [0, 0, 0]) then {_extra select 1} else {(vehicle _unit) weaponDirection _weapon}) apply {(round (_x * 100)) / 100}", "description": "Direction du projectile [x, y, z] (mesurée dans le jeu du joueur, tourelles de véhicule comprises)."},
+  {"event": "player_fired",        "order": 7, "field": "kind",       "type": "string",    "sqf": "getText (configFile >> \"CfgAmmo\" >> _ammo >> \"simulation\")", "description": "Type de projectile."},
+  {"event": "player_fired",        "order": 8, "field": "side",       "type": "string",    "sqf": "(side group _unit) call A3B_fnc_sideName", "description": "Camp du joueur."},
+
+  {"event": "hit",                 "order": 1, "field": "id",         "type": "entity_id", "sqf": "_unit call A3B_fnc_id",           "description": "Unité touchée."},
+  {"event": "hit",                 "order": 2, "field": "by",         "type": "entity_id", "sqf": "(if (isNull _instigator) then {_source} else {_instigator}) call A3B_fnc_id", "description": "Tireur (vide si inconnu)."},
+  {"event": "hit",                 "order": 3, "field": "damage",     "type": "number",    "sqf": "(round (_damage * 100)) / 100",   "description": "Dégâts de ce coup."},
+  {"event": "hit",                 "order": 4, "field": "health",     "type": "number",    "sqf": "(round ((1 - damage _unit) * 100)) / 100", "description": "Santé restante 0-1."},
+
+  {"event": "waypoint_completed",  "order": 1, "field": "group",      "type": "entity_id", "sqf": "_group call A3B_fnc_id",          "description": "Groupe."},
+  {"event": "waypoint_completed",  "order": 2, "field": "index",      "type": "number",    "sqf": "_waypointIndex",                  "description": "Numéro du point atteint."},
+  {"event": "waypoint_completed",  "order": 3, "field": "remaining",  "type": "number",    "sqf": "((count waypoints _group) - _waypointIndex - 1) max 0", "description": "Points de passage restants."},
+  {"event": "waypoint_completed",  "order": 4, "field": "pos",        "type": "position",  "sqf": "waypointPosition [_group, _waypointIndex]", "description": "Position du point atteint."},
+
+  {"event": "enemy_detected",      "order": 1, "field": "group",      "type": "entity_id", "sqf": "_group call A3B_fnc_id",          "description": "Groupe qui a repéré."},
+  {"event": "enemy_detected",      "order": 2, "field": "target",     "type": "entity_id", "sqf": "_newTarget call A3B_fnc_id",      "description": "Ennemi repéré."},
+  {"event": "enemy_detected",      "order": 3, "field": "type",       "type": "string",    "sqf": "typeOf _newTarget",               "description": "Sa classe."},
+  {"event": "enemy_detected",      "order": 4, "field": "side",       "type": "string",    "sqf": "(side group _newTarget) call A3B_fnc_sideName", "description": "Son camp."},
+  {"event": "enemy_detected",      "order": 5, "field": "pos",        "type": "position",  "sqf": "getPosATL _newTarget",            "description": "Sa position."},
+
+  {"event": "combat_changed",      "order": 1, "field": "group",      "type": "entity_id", "sqf": "_group call A3B_fnc_id",          "description": "Groupe."},
+  {"event": "combat_changed",      "order": 2, "field": "behaviour",  "type": "string",    "sqf": "toLower _newMode",                "description": "Nouveau comportement (careless, safe, aware, combat, stealth)."},
+
+  {"event": "group_fleeing",       "order": 1, "field": "group",      "type": "entity_id", "sqf": "_group call A3B_fnc_id",          "description": "Groupe."},
+  {"event": "group_fleeing",       "order": 2, "field": "fleeing",    "type": "boolean",   "sqf": "_fleeingNow",                     "description": "true = commence à fuir, false = se reprend."},
+
+  {"event": "created",             "order": 1, "field": "id",         "type": "entity_id", "sqf": "_entity call A3B_fnc_id",         "description": "Nouvelle entité."},
+  {"event": "created",             "order": 2, "field": "type",       "type": "string",    "sqf": "typeOf _entity",                  "description": "Sa classe."},
+  {"event": "created",             "order": 3, "field": "pos",        "type": "position",  "sqf": "getPosATL _entity",               "description": "Position."},
+
+  {"event": "deleted",             "order": 1, "field": "id",         "type": "entity_id", "sqf": "_entity getVariable [\"a3b_id\", \"\"]", "description": "Entité supprimée."},
+  {"event": "deleted",             "order": 2, "field": "type",       "type": "string",    "sqf": "typeOf _entity",                  "description": "Sa classe."},
+
+  {"event": "player_connected",    "order": 1, "field": "name",       "type": "string",    "sqf": "_name",                           "description": "Nom du joueur."},
+  {"event": "player_connected",    "order": 2, "field": "uid",        "type": "string",    "sqf": "_uid",                            "description": "Identifiant Steam."},
+  {"event": "player_connected",    "order": 3, "field": "jip",        "type": "boolean",   "sqf": "_jip",                            "description": "Arrivé en cours de partie ?"},
+
+  {"event": "chat",                "order": 1, "field": "channel",    "type": "string",    "sqf": "[\"global\", \"side\", \"command\", \"group\", \"vehicle\", \"direct\"] param [_channel, \"custom\"]", "description": "Canal : global, side, command, group, vehicle, direct ou custom."},
+  {"event": "chat",                "order": 2, "field": "from",       "type": "string",    "sqf": "_name",                           "description": "Nom du joueur."},
+  {"event": "chat",                "order": 3, "field": "unit",       "type": "entity_id", "sqf": "_person call A3B_fnc_id",         "description": "Unité du joueur."},
+  {"event": "chat",                "order": 4, "field": "side",       "type": "string",    "sqf": "(side group _person) call A3B_fnc_sideName", "description": "Camp du joueur."},
+  {"event": "chat",                "order": 5, "field": "text",       "type": "string",    "sqf": "_text",                           "description": "Message."},
+
+  {"event": "player_disconnected", "order": 1, "field": "name",       "type": "string",    "sqf": "_name",                           "description": "Nom du joueur."},
+  {"event": "player_disconnected", "order": 2, "field": "uid",        "type": "string",    "sqf": "_uid",                            "description": "Identifiant Steam."}
+]

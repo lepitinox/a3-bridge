@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A3 Bridge · banc de test</title>
+<style>
+:root {
+  --bg: #0e1115; --panel: #151a20; --panel2: #1c222a; --line: #2a323c; --text: #d9dfe6; --muted: #8b97a4;
+  --accent: #e8b84a; --ok: #3ec46d; --err: #ff6161;
+  --west: #4c8dff; --east: #ff5a5a; --independent: #3ec46d; --civilian: #c27cff; --unknown: #9aa4ae;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.45 system-ui, "Segoe UI", sans-serif; }
+body { display: grid; grid-template-rows: auto 1fr; }
+header { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 14px; margin: 0 6px 0 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; background: var(--panel2); color: var(--muted); white-space: nowrap; }
+.pill b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
+.dot.on { background: var(--ok); }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 460px; min-height: 0; }
+#mapwrap { position: relative; min-height: 0; overflow: hidden; }
+#map { display: block; width: 100%; height: 100%; cursor: crosshair; }
+#maptools { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+#legend { position: absolute; top: 8px; right: 8px; display: flex; gap: 10px; background: #000a; padding: 4px 8px; border-radius: 4px; color: var(--muted); }
+#legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+#tip { position: absolute; pointer-events: none; background: #000d; border: 1px solid var(--line); padding: 4px 7px; border-radius: 4px; display: none; white-space: nowrap; }
+#hint { position: absolute; top: 44px; left: 8px; color: var(--muted); background: #000a; padding: 3px 7px; border-radius: 4px; }
+#banner { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; color: var(--muted); font-size: 15px; pointer-events: none; }
+#banner.show { display: flex; }
+#placing { position: absolute; top: 76px; left: 50%; transform: translateX(-50%); display: none; background: var(--accent); color: #15120a; font-weight: 600; padding: 5px 12px; border-radius: 4px; }
+#placing.show { display: block; }
+#toast { position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); background: #000d; border: 1px solid var(--line); padding: 5px 10px; border-radius: 4px; display: none; }
+aside { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border-left: 1px solid var(--line); background: var(--panel); min-height: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); padding: 9px 6px; font: inherit; cursor: pointer; }
+.tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab { display: none; overflow: auto; padding: 10px 12px 14px; min-height: 0; }
+.tab.active { display: block; }
+.btn { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 4px; padding: 4px 9px; font: inherit; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: #15120a; border-color: var(--accent); font-weight: 600; }
+.btn.danger:hover { border-color: var(--err); color: var(--err); }
+.btn.on { border-color: var(--accent); color: var(--accent); }
+h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+h3:first-child { margin-top: 2px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+label.f { display: block; margin: 9px 0 3px; color: var(--muted); }
+label.f .req { color: var(--accent); }
+label.f .ty { float: right; font-size: 11px; opacity: .8; }
+input, select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 4px; padding: 5px 7px; font: inherit; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+textarea { font-family: ui-monospace, Consolas, monospace; font-size: 12px; min-height: 64px; resize: vertical; }
+.row { display: flex; gap: 6px; align-items: center; }
+.row > input, .row > select { flex: 1; min-width: 0; }
+.field.active-pos input { border-color: var(--accent); }
+.check { display: flex; gap: 6px; align-items: center; color: var(--text); }
+.check input { width: auto; }
+.help { color: var(--muted); font-size: 12px; margin-top: 2px; }
+#cmddesc { color: var(--muted); margin: 4px 0 2px; }
+.sendrow { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.sendrow span { color: var(--muted); font-size: 12px; }
+#results .res { border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: 4px; padding: 5px 8px; margin-bottom: 6px; background: var(--panel2); }
+#results .res.err { border-left-color: var(--err); }
+#results .res .h { display: flex; justify-content: space-between; gap: 8px; }
+#results .res code { display: block; white-space: pre-wrap; word-break: break-all; color: var(--muted); font-size: 12px; margin-top: 3px; }
+details summary { cursor: pointer; color: var(--muted); margin-top: 14px; }
+.subtabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 4px; position: sticky; top: -10px; background: var(--panel); }
+td { padding: 3px 4px; border-bottom: 1px solid #222a33; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+tr { cursor: pointer; }
+tr:hover td { background: var(--panel2); }
+tr.sel td { background: #3a3220; }
+.side { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.bar { display: inline-block; width: 42px; height: 6px; background: #333; border-radius: 3px; vertical-align: middle; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ok); }
+.dead { opacity: .45; }
+#evlist .ev { padding: 3px 0; border-bottom: 1px solid #222a33; font-size: 12px; word-break: break-word; }
+#evlist .t { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+.tag { display: inline-block; padding: 0 6px; border-radius: 3px; background: var(--panel2); margin-right: 6px; }
+.tag.killed { color: var(--err); } .tag.created { color: var(--ok); } .tag.fired, .tag.player_fired { color: var(--accent); } .tag.deleted { color: var(--muted); }
+.tag.enemy_detected, .tag.hit { color: #ff9a4a; } .tag.waypoint_completed, .tag.combat_changed { color: #7fb2ff; } .tag.chat { color: #e0e0e0; }
+#selbox { border-top: 1px solid var(--line); padding: 9px 12px; background: var(--panel2); }
+#selbox .title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#selbox .meta { color: var(--muted); font-size: 12px; margin: 3px 0 7px; word-break: break-word; }
+#selbox .acts { display: flex; flex-wrap: wrap; gap: 5px; }
+.muted { color: var(--muted); }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: 55vh auto; } aside { border-left: 0; border-top: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>A3 Bridge · banc de test</h1>
+  <span class="pill"><span id="d-ws" class="dot"></span>passerelle</span>
+  <span class="pill"><span id="d-game" class="dot"></span><span id="mission">aucun scénario</span></span>
+  <span class="pill"><span id="d-map" class="dot"></span><span id="mapstatus">carte : –</span></span>
+  <span class="pill">état <b id="s-rate">0</b>/s</span>
+  <span class="pill">fps serveur <b id="s-fps">–</b></span>
+  <span class="pill">unités <b id="s-units">0</b></span>
+  <span class="pill">véhicules <b id="s-veh">0</b></span>
+  <span class="pill">groupes <b id="s-grp">0</b></span>
+  <span class="pill">objets <b id="s-obj">0</b></span>
+  <span class="pill">joueurs <b id="s-players">0</b></span>
+  <span class="pill">dernier ordre <b id="s-lat">–</b></span>
+</header>
+<main>
+  <div id="mapwrap">
+    <canvas id="map"></canvas>
+    <div id="maptools">
+      <button class="btn" id="v-me">Centrer sur moi</button>
+      <button class="btn" id="v-all">Carte entière</button>
+      <button class="btn" id="v-follow">Suivre la sélection</button>
+      <button class="btn on" data-layer="relief">Relief</button>
+      <button class="btn on" data-layer="roads">Routes</button>
+      <button class="btn on" data-layer="buildings">Bâtiments</button>
+      <button class="btn on" data-layer="names">Noms</button>
+      <button class="btn on" data-layer="shots">Tirs</button>
+      <button class="btn on" data-layer="analyses">Analyses</button>
+    </div>
+    <div id="legend"><span><i style="background:var(--west)"></i>OTAN</span><span><i style="background:var(--east)"></i>OPFOR</span><span><i style="background:var(--independent)"></i>indép.</span><span><i style="background:var(--civilian)"></i>civil</span></div>
+    <div id="banner">Aucun scénario connecté.<br>Lancez le serveur dédié avec le mod : cette page se mettra à jour toute seule.</div>
+    <div id="tip"></div>
+    <div id="toast"></div>
+    <div id="hint">Clic : choisir une position ou une entité · glisser : déplacer · molette : zoom · Échap : désélectionner</div>
+    <div id="placing"></div>
+  </div>
+  <aside>
+    <nav class="tabs">
+      <button data-tab="t-cmd" class="active">Ordres</button>
+      <button data-tab="t-cat">Catalogue</button>
+      <button data-tab="t-ent">Entités</button>
+      <button data-tab="t-ev">Événements</button>
+    </nav>
+    <div style="min-height:0; display:grid">
+      <section id="t-cmd" class="tab active">
+        <h3>Raccourcis</h3>
+        <div class="presets" id="presets"></div>
+        <h3>Ordre</h3>
+        <select id="cmd"></select>
+        <div id="cmddesc"></div>
+        <div id="fields"></div>
+        <div class="sendrow"><button class="btn primary" id="send">Envoyer</button><span>Ctrl + Entrée</span>
+          <label class="check" style="margin-left:auto"><input type="checkbox" id="placemode"> placer au clic sur la carte</label></div>
+        <details>
+          <summary>Envoyer du JSON brut</summary>
+          <textarea id="raw" spellcheck="false">{"cmd": "exec_sqf", "args": {"code": "count allUnits"}}</textarea>
+          <div class="sendrow"><button class="btn" id="sendraw">Envoyer le JSON</button></div>
+        </details>
+        <h3>Résultats</h3>
+        <div id="results"><div class="muted">Les réponses du jeu apparaîtront ici.</div></div>
+      </section>
+      <section id="t-cat" class="tab">
+        <div class="subtabs" id="catsub"></div>
+        <input id="catfilter" placeholder="Rechercher (nom, classe, faction, catégorie…)">
+        <div class="help" id="cathelp">Choisissez un élément, puis cliquez sur la carte pour le faire apparaître (Échap pour arrêter).</div>
+        <div style="margin-top:8px"><table id="cattable"></table></div>
+      </section>
+      <section id="t-ent" class="tab">
+        <div class="subtabs" id="entsub"></div>
+        <input id="entfilter" placeholder="Filtrer (id, type, nom, camp…)">
+        <div style="margin-top:8px"><table id="enttable"></table></div>
+      </section>
+      <section id="t-ev" class="tab">
+        <div class="row">
+          <select id="evfilter"><option value="">Tous les événements</option></select>
+          <label class="check" style="flex:none"><input type="checkbox" id="evpause"> pause</label>
+          <button class="btn" id="evclear">Vider</button>
+        </div>
+        <div id="evlist" style="margin-top:8px"><div class="muted">Aucun événement pour l'instant.</div></div>
+      </section>
+    </div>
+    <div id="selbox"><div class="muted">Cliquez sur une unité, un véhicule, un groupe ou un objet pour le sélectionner.</div></div>
+  </aside>
+</main>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const SIDE_COLOR = { west: "#4c8dff", east: "#ff5a5a", independent: "#3ec46d", civilian: "#c27cff", unknown: "#9aa4ae" };
+const SIDE_NAME = { west: "OTAN", east: "OPFOR", independent: "indép.", civilian: "civil", unknown: "?" };
+const SIDE_MARKER_RGBA = {
+  ColorWEST: [0, 0.3, 0.6, 1], ColorBLUFOR: [0, 0.3, 0.6, 1], ColorEAST: [0.5, 0, 0, 1], ColorOPFOR: [0.5, 0, 0, 1],
+  ColorGUER: [0, 0.5, 0, 1], ColorIndependent: [0, 0.5, 0, 1], ColorCIV: [0.4, 0, 0.5, 1], ColorCivilian: [0.4, 0, 0.5, 1], ColorUNKNOWN: [0.7, 0.6, 0, 1],
+};
+
+const S = {
+  tools: [], byName: {}, state: null, index: new Map(), events: [], eventNames: new Set(),
+  ws: null, wsOpen: false, game: false, pending: new Map(), nextId: 1, stateTimes: [],
+  selected: null, follow: false, view: null, dirty: true, hits: [], hover: null, pick: null,
+  activePos: null, entTab: "units",
+  map: null, mapLoading: false, mapTry: 0, health: null,
+  layers: { relief: true, roads: true, buildings: true, names: true, shots: true, analyses: true },
+  shots: [], overlay: null,
+  spec: null, catalog: null, catalogLoading: false, catTab: "units", placing: false,
+};
+
+// ------------------------------------------------------------------ connection
+
+async function boot() {
+  try {
+    const schema = await (await fetch("/schema")).json();
+    S.tools = schema.tools.map((t) => ({ ...t, cmd: t.name.replace(/^arma_/, "") }));
+    for (const t of S.tools) S.byName[t.cmd] = t;
+    S.spec = await (await fetch("/spec")).json();
+  } catch (e) {
+    toast("Impossible de lire /schema : la passerelle est-elle lancée ?");
+  }
+  $("#cmd").innerHTML = S.tools.map((t) => `<option value="${t.cmd}">${t.cmd}</option>`).join("");
+  $("#cmd").onchange = renderForm;
+  renderForm();
+  renderPresets();
+  connect();
+  pollHealth();
+  setInterval(pollHealth, 2000);
+  setInterval(renderSide, 500);
+  requestAnimationFrame(frame);
+}
+
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}/`);
+  S.ws = ws;
+  ws.onopen = () => { S.wsOpen = true; updateHeader(); };
+  ws.onclose = () => { S.wsOpen = false; updateHeader(); setTimeout(connect, 1500); };
+  ws.onmessage = (m) => {
+    const msg = JSON.parse(m.data);
+    if (msg.type === "state") onState(msg);
+    else if (msg.type === "event") onEvent(msg);
+    else if (msg.type === "result") { S.pending.get(msg.id)?.(msg); S.pending.delete(msg.id); }
+  };
+}
+
+async function pollHealth() {
+  try {
+    const h = await (await fetch("/health")).json();
+    S.health = h;
+    S.game = h.game_connected;
+    S.mission = h.mission;
+  } catch { S.game = false; }
+  updateHeader();
+}
+
+function onState(st) {
+  S.state = st;
+  S.index = new Map();
+  for (const k of ["units", "vehicles", "groups", "objects"]) for (const e of st[k] ?? []) S.index.set(e.id, { kind: k, e });
+  for (const m of st.markers ?? []) S.index.set("marker:" + m.name, { kind: "markers", e: { ...m, id: "marker:" + m.name } });
+  if (!S.catalog && !S.catalogLoading && S.health?.catalog?.ready) loadCatalog();
+  const now = performance.now();
+  S.stateTimes.push(now);
+  while (S.stateTimes.length && now - S.stateTimes[0] > 2000) S.stateTimes.shift();
+  if (!S.view) fitInitial();
+  const world = st.world?.world;
+  if (world && S.map?.world !== world && !S.mapLoading && now - S.mapTry > 3000) loadMap(world);
+  if (S.follow && S.selected) { const p = posOf(S.selected); if (p) { S.view.cx = p[0]; S.view.cy = p[1]; } }
+  S.dirty = true;
+}
+
+function onEvent(ev) {
+  // Shots become short-lived tracers on the map (shots layer).
+  if ((ev.event === "fired" || ev.event === "player_fired") && ev.data?.pos?.length && ev.data?.dir?.length) {
+    S.shots.push({ pos: ev.data.pos, dir: ev.data.dir, kind: ev.data.kind, side: ev.data.side, t: performance.now() });
+    if (S.shots.length > 400) S.shots.splice(0, S.shots.length - 400);
+  }
+  S.events.push(ev);
+  if (S.events.length > 1500) S.events.splice(0, S.events.length - 1500);
+  if (!S.eventNames.has(ev.event)) {
+    S.eventNames.add(ev.event);
+    $("#evfilter").insertAdjacentHTML("beforeend", `<option>${esc(ev.event)}</option>`);
+  }
+}
+
+function send(cmd, args) {
+  return new Promise((resolve) => {
+    if (!S.wsOpen) {
+      const r = { ok: false, error: { code: "offline", message: "passerelle non connectée" } };
+      logResult(cmd, args, r, 0);
+      return resolve(r);
+    }
+    const id = "ui" + S.nextId++;
+    const t0 = performance.now();
+    S.pending.set(id, (msg) => {
+      const ms = Math.round(performance.now() - t0);
+      $("#s-lat").textContent = ms + " ms";
+      logResult(cmd, args, msg, ms);
+      resolve(msg);
+    });
+    S.ws.send(JSON.stringify({ type: "command", id, cmd, args }));
+  });
+}
+const run = (o) => send(o.cmd, o.args);
+
+function logResult(cmd, args, r, ms) {
+  // Answers to spatial questions are drawn on the map (analyses layer).
+  if (r.ok && ["query_visibility", "query_cover", "query_area"].includes(cmd)) {
+    S.overlay = { cmd, args, result: r.result, t: performance.now() };
+    S.dirty = true;
+  }
+  const box = $("#results");
+  if (box.firstElementChild?.classList.contains("muted")) box.innerHTML = "";
+  const body = r.ok ? JSON.stringify(r.result) : `${r.error.code} : ${r.error.message}`;
+  box.insertAdjacentHTML("afterbegin",
+    `<div class="res ${r.ok ? "" : "err"}"><div class="h"><b>${esc(cmd)}</b><span class="muted">${r.ok ? "ok" : "erreur"} · ${ms} ms</span></div>` +
+    `<code>${esc(JSON.stringify(args))}</code><code style="color:var(--text)">→ ${esc(body)}</code></div>`);
+  while (box.children.length > 40) box.lastElementChild.remove();
+  if (!r.ok) toast(`${cmd} : ${r.error.message}`);
+}
+
+// ------------------------------------------------------------------ header
+
+function updateHeader() {
+  $("#d-ws").classList.toggle("on", S.wsOpen);
+  $("#d-game").classList.toggle("on", S.game);
+  $("#mission").textContent = S.game && S.mission ? `${S.mission.mission} · ${S.mission.world}${S.mission.dedicated ? " · dédié" : ""}` : "aucun scénario";
+  $("#banner").classList.toggle("show", !S.game);
+  const st = S.state;
+  const world = st?.world?.world;
+  const ms = S.health?.map;
+  const STAGE = { waiting: "en attente", heights: "relief", forests: "forêts", roads: "routes et bâtiments", failed: "échec" };
+  let mapText = "carte : –";
+  if (world && S.map?.world === world) mapText = `carte de ${world}`;
+  else if (ms && world && ms.world === world && !ms.ready) mapText = `carte : ${Math.round(ms.progress)} % (${STAGE[ms.stage] ?? ms.stage})`;
+  else if (world) mapText = "carte : aucune (map_export désactivé ?)";
+  $("#mapstatus").textContent = mapText;
+  $("#d-map").classList.toggle("on", !!world && S.map?.world === world);
+  $("#s-rate").textContent = (S.stateTimes.length / 2).toFixed(1);
+  if (!st) return;
+  $("#s-fps").textContent = Math.round(st.world?.fps ?? 0);
+  $("#s-units").textContent = st.units.length;
+  $("#s-veh").textContent = st.vehicles.length;
+  $("#s-grp").textContent = st.groups.length;
+  $("#s-obj").textContent = st.objects.length;
+  $("#s-players").textContent = st.units.filter((u) => u.is_player).length;
+}
+
+// ------------------------------------------------------------------ positions
+
+function posOf(id) {
+  const hit = S.index.get(id);
+  if (!hit) return null;
+  if (hit.kind === "groups") return S.index.get(hit.e.leader)?.e.pos ?? null;
+  return hit.e.pos;
+}
+
+function me() {
+  return S.state?.units.find((u) => u.is_player && u.alive) ?? null;
+}
+
+/** A point at distance d from the player (or the selection, or the view centre), in a random direction. */
+function near(d) {
+  const base = me()?.pos ?? (S.selected && posOf(S.selected)) ?? (S.view ? [S.view.cx, S.view.cy] : [0, 0]);
+  const a = Math.random() * Math.PI * 2;
+  return [Math.round(base[0] + Math.cos(a) * d), Math.round(base[1] + Math.sin(a) * d)];
+}
+const offset = (p, d) => [p[0] + d, p[1] + (d % 2 ? 2 : -2)];
+
+// ------------------------------------------------------------------ command form
+
+function kindOf(p) {
+  if (p.enum) return "enum";
+  if (p.type === "boolean") return "boolean";
+  if (p.type === "number") return "number";
+  if (p.title === "position") return "position";
+  if (p.title === "entity_id") return "entity";
+  if (p.title === "code") return "code";
+  if (p.type === "array") return "json";
+  return "text";
+}
+
+function renderForm() {
+  const t = S.byName[$("#cmd").value];
+  const f = $("#fields");
+  f.innerHTML = "";
+  S.activePos = null;
+  if (!t) return;
+  $("#cmddesc").textContent = t.description;
+  const req = new Set(t.input_schema.required);
+  for (const [name, p] of Object.entries(t.input_schema.properties)) f.appendChild(field(name, p, req.has(name)));
+  const firstPos = f.querySelector('.field[data-kind="position"]');
+  if (firstPos) setActivePos(firstPos);
+}
+
+function field(name, p, required) {
+  const w = document.createElement("div");
+  const kind = kindOf(p);
+  w.className = "field";
+  w.dataset.name = name;
+  w.dataset.kind = kind;
+  let input;
+  const effects = Object.fromEntries((S.spec?.effects ?? []).map((e) => [e.name, e.description]));
+  const catalogSection = S.spec?.types?.[p.title]?.catalog;
+  if (kind === "enum") input = `<select>${p.enum.map((v) => `<option value="${esc(v)}" ${v === p.default ? "selected" : ""}>${esc(p.title === "effect" && effects[v] ? `${v} — ${effects[v]}` : v)}</option>`).join("")}</select>`;
+  else if (kind === "text" && catalogSection) input = `<input type="text" list="dl-cat-${catalogSection}" value="${esc(p.default ?? p.examples?.[0] ?? "")}" placeholder="tapez pour chercher dans le catalogue">`;
+  else if (kind === "boolean") input = `<label class="check"><input type="checkbox" ${p.default ? "checked" : ""}> oui</label>`;
+  else if (kind === "number") input = `<input type="number" step="any" ${p.minimum !== undefined ? `min="${p.minimum}"` : ""} ${p.maximum !== undefined ? `max="${p.maximum}"` : ""} value="${p.default ?? ""}">`;
+  else if (kind === "position") input = `<div class="row"><input type="number" step="any" placeholder="x"><input type="number" step="any" placeholder="y"><input type="number" step="any" placeholder="z (sol = 0)"><button class="btn" data-act="near">Près de moi</button></div>`;
+  else if (kind === "entity") input = `<div class="row"><input type="text" placeholder="u12, v3, g4, o7" value="${esc(p.default ?? "")}"><button class="btn" data-act="sel">Sélection</button></div>`;
+  else if (kind === "code") input = `<textarea spellcheck="false" placeholder="count allUnits"></textarea>`;
+  else if (kind === "json") input = `<textarea spellcheck="false">${esc(JSON.stringify(p.default ?? []))}</textarea>`;
+  else {
+    const list = p.examples ? `dl-${name}-${Math.random().toString(36).slice(2, 7)}` : "";
+    input = `<input type="text" ${list ? `list="${list}"` : ""} value="${esc(p.default ?? p.examples?.[0] ?? "")}">` +
+      (list ? `<datalist id="${list}">${p.examples.map((e) => `<option value="${esc(e)}">`).join("")}</datalist>` : "");
+  }
+  w.innerHTML = `<label class="f">${esc(name)}${required ? ' <span class="req">*</span>' : ""}<span class="ty">${esc(p.title ?? "")}</span></label>${input}<div class="help">${esc(p.description)}</div>`;
+  if (kind === "position") {
+    w.addEventListener("focusin", () => setActivePos(w));
+    w.querySelector('[data-act="near"]').onclick = () => { setPos(w, near(20)); };
+  }
+  if (kind === "entity") {
+    w.querySelector('[data-act="sel"]').onclick = () => {
+      if (S.selected) w.querySelector("input").value = S.selected;
+      else toast("Aucune sélection : cliquez sur une entité de la carte");
+    };
+  }
+  return w;
+}
+
+function setActivePos(w) {
+  S.activePos?.classList.remove("active-pos");
+  S.activePos = w;
+  w.classList.add("active-pos");
+}
+
+function setPos(w, p) {
+  const inputs = w.querySelectorAll("input");
+  inputs[0].value = Math.round(p[0] * 10) / 10;
+  inputs[1].value = Math.round(p[1] * 10) / 10;
+  if (p[2] !== undefined) inputs[2].value = p[2];
+  S.pick = [Number(inputs[0].value), Number(inputs[1].value)];
+  S.dirty = true;
+}
+
+function readForm() {
+  const t = S.byName[$("#cmd").value];
+  const req = new Set(t.input_schema.required);
+  const args = {};
+  for (const w of $("#fields").children) {
+    const { name, kind } = w.dataset;
+    let v;
+    if (kind === "boolean") v = w.querySelector("input").checked;
+    else if (kind === "enum") v = w.querySelector("select").value;
+    else if (kind === "number") {
+      const s = w.querySelector("input").value;
+      if (s === "") continue;
+      v = Number(s);
+    } else if (kind === "position") {
+      const a = [...w.querySelectorAll("input")].map((i) => i.value);
+      if (a[0] === "" || a[1] === "") {
+        if (req.has(name)) throw new Error(`${name} : position manquante (cliquez sur la carte)`);
+        continue;
+      }
+      v = a.filter((x, i) => i < 2 || x !== "").map(Number);
+    } else if (kind === "json") {
+      const s = w.querySelector("textarea").value.trim();
+      if (!s) continue;
+      try { v = JSON.parse(s); } catch { throw new Error(`${name} : JSON invalide`); }
+    } else {
+      v = w.querySelector("input, textarea").value;
+      if (v === "" && !req.has(name)) continue;
+    }
+    args[name] = v;
+  }
+  return args;
+}
+
+async function sendForm() {
+  let args;
+  try { args = readForm(); } catch (e) { toast(e.message); return; }
+  await send($("#cmd").value, args);
+}
+
+// ------------------------------------------------------------------ shortcuts
+
+const PRESETS = [
+  ["Soldat OTAN près de moi", () => run({cmd: "spawn_unit", args: {type: "B_Soldier_F", side: "west", pos: near(15)}})],
+  ["Escouade OPFOR à 200 m", async () => {
+    const p = near(200);
+    const lead = await run({cmd: "spawn_unit", args: {type: "O_Soldier_SL_F", side: "east", pos: p}});
+    if (!lead.ok) return;
+    for (let i = 1; i <= 5; i++) await run({cmd: "spawn_unit", args: {type: "O_Soldier_F", group: lead.result.group, pos: offset(p, i * 3)}});
+  }],
+  ["Blindé OPFOR avec équipage", () => run({cmd: "spawn_vehicle", args: {type: "O_APC_Tracked_02_cannon_F", pos: near(300), crew: true, side: "east"}})],
+  ["Hélico OTAN en vol", () => run({cmd: "spawn_vehicle", args: {type: "B_Heli_Light_01_F", pos: [...near(150), 120], crew: true}})],
+  ["Caisse de munitions", () => run({cmd: "spawn_object", args: {type: "Box_NATO_Ammo_F", pos: near(5)}})],
+  ["Message radio", () => run({cmd: "message", args: {text: "Contact au nord, restez vigilants", kind: "side_chat", to: "all"}})],
+  ["Bandeau à l'écran", () => run({cmd: "message", args: {text: "Test A3 Bridge", kind: "title", to: "all"}})],
+  ["Nuit", () => run({cmd: "set_environment", args: {time: 0}})],
+  ["Midi, ciel clair", () => run({cmd: "set_environment", args: {time: 12, overcast: 0, rain: 0, fog: 0}})],
+  ["Orage", () => run({cmd: "set_environment", args: {overcast: 1, rain: 1, fog: 0.2}})],
+  ["Compter les unités (SQF)", () => run({cmd: "exec_sqf", args: {code: "count allUnits"}})],
+  ["Escouade OTAN complète", () => run({cmd: "spawn_group", args: {group: "West/BLU_F/Infantry/BUS_InfSquad", pos: near(40)}})],
+  ["Artillerie sur le point choisi", () => needPick() && run({cmd: "spawn_effect", args: {effect: "artillery", pos: S.pick, count: 4, spread: 40, delay: 1.5}})],
+  ["Fumigène rouge sur le point choisi", () => needPick() && run({cmd: "spawn_effect", args: {effect: "smoke_red", pos: S.pick}})],
+  ["Fusée éclairante sur le point choisi", () => needPick() && run({cmd: "spawn_effect", args: {effect: "flare_white", pos: S.pick}})],
+  ["Marqueur objectif sur le point choisi", () => needPick() && run({cmd: "set_marker", args: {pos: S.pick, type: "mil_objective", color: "ColorRed", text: "Objectif"}})],
+];
+
+/** Effects aimed at a point need one picked on the map first; returns false (and says so) when there is none. */
+function needPick() {
+  if (!S.pick) toast("Cliquez d'abord un point vide sur la carte");
+  return !!S.pick;
+}
+
+// ------------------------------------------------------------------ catalog
+
+const CAT_LABEL = {
+  units: "Soldats", vehicles: "Véhicules", objects: "Objets", groups: "Groupes", effects: "Effets",
+  weapons: "Armes", magazines: "Munitions", gear: "Équipements", backpacks: "Sacs", marker_types: "Icônes de marqueurs", marker_colors: "Couleurs de marqueurs",
+};
+// Inventory sections fill a crate's item list instead of a single field.
+const CARGO_SECTIONS = ["weapons", "magazines", "gear", "backpacks"];
+
+async function loadCatalog() {
+  S.catalogLoading = true;
+  try {
+    const r = await fetch("/catalog");
+    if (r.ok) {
+      const c = await r.json();
+      S.catalog = c.sections;
+      // Effects come from the design tables rather than from the game's configs.
+      S.catalog.effects = { fields: ["class", "name", "kind"], rows: (S.spec?.effects ?? []).map((e) => [e.name, e.description, e.kind]) };
+      // One shared datalist per section feeds every catalog-backed field of the forms.
+      for (const [name, sec] of Object.entries(S.catalog)) {
+        let dl = document.getElementById(`dl-cat-${name}`);
+        if (!dl) { dl = document.createElement("datalist"); dl.id = `dl-cat-${name}`; document.body.appendChild(dl); }
+        dl.innerHTML = sec.rows.map((row) => `<option value="${esc(row[0])}" label="${esc([row[1], row[3]].filter(Boolean).join(" · "))}">`).join("");
+      }
+      renderCatalog();
+    }
+  } catch {}
+  S.catalogLoading = false;
+}
+
+/** The command and parameter a catalog section fills: the first command parameter whose type picks from it. */
+function catalogTarget(section) {
+  if (section === "effects") return { cmd: "spawn_effect", param: "effect" };
+  for (const c of S.spec?.commands ?? []) {
+    for (const p of c.params) if (S.spec.types[p.type]?.catalog === section) return { cmd: c.name, param: p.name };
+  }
+  return null;
+}
+
+function renderCatalog() {
+  if (!$("#t-cat").classList.contains("active")) return;
+  if (!S.catalog) {
+    $("#cattable").innerHTML = `<tr><td class="muted">Le catalogue n'est pas encore lu par le jeu${S.health?.catalog?.building ? " (lecture en cours)" : ""}.</td></tr>`;
+    return;
+  }
+  $("#catsub").innerHTML = Object.keys(CAT_LABEL).filter((k) => S.catalog[k]).map((k) =>
+    `<button class="btn ${k === S.catTab ? "on" : ""}" data-k="${k}">${CAT_LABEL[k]} (${S.catalog[k].rows.length})</button>`).join("");
+  const sec = S.catalog[S.catTab];
+  const f = $("#catfilter").value.trim().toLowerCase();
+  const rows = sec.rows.filter((r) => !f || r.join(" ").toLowerCase().includes(f));
+  const cols = sec.fields.filter((c) => c !== "rgba");
+  $("#cattable").innerHTML = `<tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>` +
+    rows.slice(0, 300).map((r) => `<tr data-v="${esc(r[0])}">${cols.map((c) => `<td title="${esc(r[sec.fields.indexOf(c)])}">${esc(r[sec.fields.indexOf(c)])}</td>`).join("")}</tr>`).join("") +
+    (rows.length > 300 ? `<tr><td colspan="${cols.length}" class="muted">${rows.length - 300} autres : affinez la recherche.</td></tr>` : "");
+}
+
+/** Picking a catalog entry fills the matching command's form and turns on placing by clicking the map. */
+function pickCatalog(value) {
+  if (CARGO_SECTIONS.includes(S.catTab)) {
+    if ($("#cmd").value !== "fill_crate") { $("#cmd").value = "fill_crate"; renderForm(); setPlacing(false); }
+    const box = $('#fields .field[data-name="items"] textarea');
+    let items = [];
+    try { items = JSON.parse(box.value || "[]"); } catch {}
+    const line = items.find((i) => i[0] === value);
+    if (line) line[1] += 1; else items.push([value, 1]);
+    box.value = JSON.stringify(items);
+    toast(`${value} ajouté à la liste de fill_crate (onglet Ordres)`);
+    return;
+  }
+  const target = catalogTarget(S.catTab);
+  if (!target) return;
+  $("#cmd").value = target.cmd;
+  renderForm();
+  const w = $(`#fields .field[data-name="${target.param}"]`);
+  const input = w?.querySelector("input, select");
+  if (input) input.value = value;
+  const row = S.catalog[S.catTab].rows.find((r) => r[0] === value);
+  setPlacing(true, `${row?.[1] || value}`);
+}
+
+function setPlacing(on, label) {
+  S.placing = on;
+  $("#placemode").checked = on;
+  const b = $("#placing");
+  b.classList.toggle("show", on);
+  if (on) b.textContent = `Placement : ${label ?? $("#cmd").value} — cliquez sur la carte · Échap pour arrêter`;
+}
+
+function renderPresets() {
+  const box = $("#presets");
+  for (const [label, fn] of PRESETS) {
+    const b = document.createElement("button");
+    b.className = "btn";
+    b.textContent = label;
+    b.onclick = fn;
+    box.appendChild(b);
+  }
+}
+
+// ------------------------------------------------------------------ selection panel
+
+function select(id, center = false) {
+  S.selected = id;
+  const w = $('#fields .field[data-kind="entity"]');
+  if (w && id) w.querySelector("input").value = id;
+  if (center && id) { const p = posOf(id); if (p) { S.view.cx = p[0]; S.view.cy = p[1]; } }
+  S.dirty = true;
+  renderSelection();
+  renderEntities();
+}
+
+function renderSelection() {
+  const box = $("#selbox");
+  const hit = S.selected && S.index.get(S.selected);
+  if (!hit) {
+    box.innerHTML = S.selected
+      ? `<div class="muted">${esc(S.selected)} n'existe plus.</div>`
+      : `<div class="muted">Cliquez sur une unité, un véhicule, un groupe ou un objet pour le sélectionner.</div>`;
+    return;
+  }
+  const e = hit.e;
+  const id = e.id;
+  if (hit.kind === "markers") {
+    // Moving keeps the marker's current look: set_marker restyles with whatever it is given.
+    const keep = { name: e.name, type: e.type || "mil_dot", color: e.color, text: e.text || "none", shape: ["rectangle", "ellipse"].includes(e.shape) ? e.shape : "icon", size_x: e.size[0], size_y: e.size[1], dir: e.dir, alpha: e.alpha };
+    box.innerHTML = `<div class="title"><b>Marqueur ${esc(e.name)}</b><span class="muted">${e.pos.slice(0, 2).map(Math.round).join(", ")}</span></div><div class="meta">${esc(e.text || "(sans texte)")} · ${esc(e.type)} · ${esc(e.color)} · ${esc(e.shape)}</div><div class="acts"></div>`;
+    const ab = box.querySelector(".acts");
+    for (const [label, fn, cls] of [
+      ["Déplacer au point choisi", () => needPick() && run({cmd: "set_marker", args: {...keep, pos: S.pick}})],
+      ["Supprimer le marqueur", () => run({cmd: "delete_marker", args: {name: e.name}}), "danger"],
+      ["Désélectionner", () => select(null)],
+    ]) {
+      const b = document.createElement("button");
+      b.className = "btn " + (cls ?? "");
+      b.textContent = label;
+      b.onclick = fn;
+      ab.appendChild(b);
+    }
+    return;
+  }
+  let meta = "";
+  if (hit.kind === "units") meta = `${esc(e.name)} · ${SIDE_NAME[e.side] ?? e.side} · groupe ${esc(e.group)} · santé ${Math.round(e.health * 100)} %${e.alive ? "" : " · mort"}${e.vehicle ? " · dans " + esc(e.vehicle) : ""}${e.is_player ? " · JOUEUR" : ""} · ${Math.round(e.speed)} km/h`;
+  else if (hit.kind === "vehicles") meta = `${SIDE_NAME[e.side] ?? e.side} · santé ${Math.round(e.health * 100)} % · carburant ${Math.round(e.fuel * 100)} % · équipage ${e.crew.join(", ") || "aucun"}`;
+  else if (hit.kind === "groups") meta = `${esc(e.name)} · ${SIDE_NAME[e.side] ?? e.side} · chef ${esc(e.leader)} · ${e.units.length} membres · ${e.behaviour} / ${e.combat_mode} / ${e.speed_mode}`;
+  else meta = `santé ${Math.round(e.health * 100)} %`;
+  const pos = posOf(id);
+  const acts = [];
+  if (hit.kind !== "groups") {
+    acts.push(["Soigner", () => run({cmd: "set_health", args: {id: id, health: 1}})]);
+    acts.push(["Blesser 50 %", () => run({cmd: "set_health", args: {id: id, health: 0.5}})]);
+    acts.push(["Tuer", () => run({cmd: "set_health", args: {id: id, health: 0}}), "danger"]);
+  } else {
+    acts.push(["Mode combat", () => run({cmd: "set_behaviour", args: {id: id, behaviour: "combat", combat_mode: "red"}})]);
+    acts.push(["Mode sûr", () => run({cmd: "set_behaviour", args: {id: id, behaviour: "safe", combat_mode: "white"}})]);
+  }
+  if (hit.kind !== "objects") acts.push(["Aller au point choisi", () => S.pick ? run({cmd: "move", args: {id: id, pos: S.pick}}) : toast("Cliquez d'abord un point vide sur la carte")]);
+  acts.push(["Téléporter au point choisi", () => S.pick ? run({cmd: "teleport", args: {id: id, pos: S.pick}}) : toast("Cliquez d'abord un point vide sur la carte")]);
+  acts.push(["Supprimer", () => run({cmd: "delete", args: {id: id}}), "danger"]);
+  if (pos) {
+    acts.push(["Ligne de vue vers le point choisi", () => needPick() && run({cmd: "query_visibility", args: {from: pos, to: S.pick}})]);
+    acts.push(["Couverture face au point choisi", () => needPick() && run({cmd: "query_cover", args: {pos: pos, threat: S.pick}})]);
+  }
+  if (hit.kind === "groups") acts.push(["État du groupe", () => run({cmd: "query_group", args: {id: id}})]);
+  acts.push(["Centrer", () => select(id, true)]);
+  acts.push(["Désélectionner", () => select(null)]);
+  box.innerHTML = `<div class="title"><b>${esc(id)} · ${esc(e.type ?? e.name)}</b><span class="muted">${pos ? pos.slice(0, 2).map(Math.round).join(", ") : ""}</span></div><div class="meta">${meta}</div><div class="acts"></div>`;
+  const ab = box.querySelector(".acts");
+  for (const [label, fn, cls] of acts) {
+    const b = document.createElement("button");
+    b.className = "btn " + (cls ?? "");
+    b.textContent = label;
+    b.onclick = fn;
+    ab.appendChild(b);
+  }
+}
+
+// ------------------------------------------------------------------ side tabs
+
+const ENT = {
+  units: { label: "Unités", cols: ["id", "type", "nom", "camp", "santé", "véhicule", "joueur"],
+    row: (e) => [e.id, e.type, e.name, side(e.side), bar(e.health), e.vehicle || "", e.is_player ? "oui" : ""], dead: (e) => !e.alive },
+  vehicles: { label: "Véhicules", cols: ["id", "type", "camp", "santé", "carbu.", "équipage"],
+    row: (e) => [e.id, e.type, side(e.side), bar(e.health), Math.round(e.fuel * 100) + " %", e.crew.length], dead: (e) => !e.alive },
+  groups: { label: "Groupes", cols: ["id", "nom", "camp", "chef", "membres", "comport.", "tir"],
+    row: (e) => [e.id, e.name, side(e.side), e.leader, e.units.length, e.behaviour, e.combat_mode], dead: () => false },
+  objects: { label: "Objets", cols: ["id", "type", "santé"], row: (e) => [e.id, e.type, bar(e.health)], dead: () => false },
+  markers: { label: "Marqueurs", cols: ["nom", "texte", "icône", "couleur", "forme"], row: (e) => [e.name, e.text, e.type, e.color, e.shape], dead: () => false },
+};
+// Cells built here are markup; every other cell is game data and gets escaped.
+const side = (s) => ({ html: `<span class="side" style="background:${SIDE_COLOR[s] ?? SIDE_COLOR.unknown}"></span>${SIDE_NAME[s] ?? esc(s)}` });
+const bar = (h) => ({ html: `<span class="bar"><i style="width:${Math.round(h * 100)}%;background:${h > 0.5 ? "var(--ok)" : h > 0 ? "var(--accent)" : "var(--err)"}"></i></span>` });
+
+function renderEntities() {
+  if (!$("#t-ent").classList.contains("active") || !S.state) return;
+  $("#entsub").innerHTML = Object.entries(ENT).map(([k, d]) => `<button class="btn ${k === S.entTab ? "on" : ""}" data-k="${k}">${d.label} (${S.state[k].length})</button>`).join("");
+  const d = ENT[S.entTab];
+  const f = $("#entfilter").value.trim().toLowerCase();
+  const list = S.entTab === "markers" ? S.state.markers.map((m) => ({ ...m, id: "marker:" + m.name })) : S.state[S.entTab];
+  const rows = list.filter((e) => !f || JSON.stringify(e).toLowerCase().includes(f)).slice(0, 400);
+  $("#enttable").innerHTML = `<tr>${d.cols.map((c) => `<th>${c}</th>`).join("")}</tr>` + rows.map((e) =>
+    `<tr data-id="${esc(e.id)}" class="${e.id === S.selected ? "sel" : ""} ${d.dead(e) ? "dead" : ""}">${d.row(e).map((c) => `<td>${typeof c === "object" ? c.html : esc(c)}</td>`).join("")}</tr>`).join("");
+}
+
+function renderEvents() {
+  if (!$("#t-ev").classList.contains("active") || $("#evpause").checked) return;
+  const f = $("#evfilter").value;
+  const list = S.events.filter((e) => !f || e.event === f).slice(-300).reverse();
+  if (!list.length) return;
+  $("#evlist").innerHTML = list.map((e) => {
+    const t = Math.max(0, Math.floor(e.time ?? 0));
+    const ts = `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+    const data = Object.entries(e.data ?? {}).filter(([, v]) => v !== "" && v !== null).map(([k, v]) => `${k}=${Array.isArray(v) ? v.map((x) => (typeof x === "number" ? Math.round(x) : x)).join(",") : v}`).join(" ");
+    return `<div class="ev"><span class="t">${ts}</span><span class="tag ${esc(e.event)}">${esc(e.event)}</span>${esc(data)}</div>`;
+  }).join("");
+}
+
+function renderSide() {
+  updateHeader();
+  renderEntities();
+  renderEvents();
+  if (!S.catalog && !S.catalogLoading && S.health?.catalog?.ready) loadCatalog();
+  if (!S.catalog) renderCatalog();
+  if (S.selected) renderSelection();
+}
+
+// ------------------------------------------------------------------ map
+
+const canvas = $("#map");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = canvas.clientWidth;
+  H = canvas.clientHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bgKey = "";
+  S.dirty = true;
+}
+
+function fitInitial() {
+  const st = S.state;
+  const size = st.world?.size || 8192;
+  const m = me();
+  if (m) S.view = { cx: m.pos[0], cy: m.pos[1], scale: Math.min(W, H) / 500 };
+  else if (st.units.length) {
+    const alive = st.units.filter((u) => u.alive);
+    const list = alive.length ? alive : st.units;
+    S.view = { cx: list.reduce((a, u) => a + u.pos[0], 0) / list.length, cy: list.reduce((a, u) => a + u.pos[1], 0) / list.length, scale: Math.min(W, H) / 2000 };
+  } else S.view = { cx: size / 2, cy: size / 2, scale: Math.min(W, H) / size };
+}
+
+const toScreen = (p) => [(p[0] - S.view.cx) * S.view.scale + W / 2, H / 2 - (p[1] - S.view.cy) * S.view.scale];
+const toWorld = (x, y) => [(x - W / 2) / S.view.scale + S.view.cx, (H / 2 - y) / S.view.scale + S.view.cy];
+
+function frame() {
+  // Fading tracers need a redraw every frame while some are on screen.
+  if (S.layers.shots && S.shots.length) S.dirty = true;
+  if (S.dirty && S.view) { draw(); S.dirty = false; }
+  requestAnimationFrame(frame);
+}
+
+function draw() {
+  const st = S.state;
+  ctx.fillStyle = "#0b0e12";
+  ctx.fillRect(0, 0, W, H);
+  if (!st) return;
+  const v = S.view;
+  const size = st.world?.size || 8192;
+
+  // Static background (terrain, roads, buildings, names), re-rendered only when the view changes.
+  drawBackground(size);
+  ctx.drawImage(bg, 0, 0, W, H);
+
+  // Grid.
+  const onMap = !!S.map?.img && S.layers.relief;
+  const step = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000].find((s) => s * v.scale >= 70) ?? 10000;
+  const [wx0, wy1] = toWorld(0, 0);
+  const [wx1, wy0] = toWorld(W, H);
+  ctx.lineWidth = 1;
+  ctx.font = "11px system-ui, sans-serif";
+  const gridLine = (major) => (onMap ? (major ? "rgba(0,0,0,0.22)" : "rgba(0,0,0,0.10)") : major ? "#26303b" : "#1a212a");
+  const gridLabel = (text, x, y) => {
+    if (onMap) haloText(ctx, text, x, y, "#2a2a2a", "rgba(255,255,255,0.8)");
+    else { ctx.fillStyle = "#56616d"; ctx.fillText(text, x, y); }
+  };
+  ctx.textAlign = "left";
+  for (let x = Math.floor(wx0 / step) * step; x <= wx1; x += step) {
+    const sx = Math.round(toScreen([x, 0])[0]) + 0.5;
+    ctx.strokeStyle = gridLine(x % (step * 5) === 0);
+    ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+    gridLabel(x >= 1000 && step >= 1000 ? x / 1000 + " km" : String(x), sx + 3, H - 8);
+  }
+  for (let y = Math.floor(wy0 / step) * step; y <= wy1; y += step) {
+    const sy = Math.round(toScreen([0, y])[1]) + 0.5;
+    ctx.strokeStyle = gridLine(y % (step * 5) === 0);
+    ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+    gridLabel(y >= 1000 && step >= 1000 ? y / 1000 + " km" : String(y), 4, sy - 3);
+  }
+
+  S.hits = [];
+  // Group destinations.
+  ctx.setLineDash([5, 4]);
+  for (const g of st.groups) {
+    if (!g.destination?.length) continue;
+    const lp = posOf(g.leader);
+    if (!lp) continue;
+    const a = toScreen(lp), b = toScreen(g.destination);
+    ctx.strokeStyle = (SIDE_COLOR[g.side] ?? SIDE_COLOR.unknown) + "99";
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    ctx.beginPath(); ctx.arc(b[0], b[1], 4, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Markers: zones as tinted shapes, icons as a diamond with their text, in their CfgMarkerColors colour.
+  // Side colours come from each player's profile, which a dedicated server lacks: use the standard ones.
+  const colors = { ...Object.fromEntries((S.catalog?.marker_colors?.rows ?? []).map((r) => [r[0], r[2]])), ...SIDE_MARKER_RGBA };
+  for (const mk of st.markers ?? []) {
+    if (!mk.pos?.length || mk.shape === "polyline") continue;
+    const [x, y] = toScreen(mk.pos);
+    if (x < -2000 || y < -2000 || x > W + 2000 || y > H + 2000) continue;
+    const rgba = colors[mk.color] ?? [0, 0, 0, 1];
+    const css = (a) => `rgba(${Math.round(rgba[0] * 255)},${Math.round(rgba[1] * 255)},${Math.round(rgba[2] * 255)},${a})`;
+    if (mk.shape === "rectangle" || mk.shape === "ellipse") {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((mk.dir * Math.PI) / 180);
+      ctx.fillStyle = css(0.3 * mk.alpha);
+      ctx.strokeStyle = css(0.9 * mk.alpha);
+      ctx.beginPath();
+      const sx = mk.size[0] * v.scale, sy = mk.size[1] * v.scale;
+      if (mk.shape === "rectangle") ctx.rect(-sx, -sy, 2 * sx, 2 * sy);
+      else ctx.ellipse(0, 0, Math.max(1, sx), Math.max(1, sy), 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = css(mk.alpha);
+      ctx.strokeStyle = "#111";
+      ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 6, y); ctx.lineTo(x, y + 7); ctx.lineTo(x - 6, y); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+    if (mk.text) {
+      ctx.font = "bold 12px system-ui, sans-serif";
+      ctx.textAlign = "left";
+      haloText(ctx, mk.text, x + 9, y + 4, css(1), "rgba(255,255,255,0.85)");
+    }
+    S.hits.push({ x, y, r: 8, id: "marker:" + mk.name });
+  }
+
+  // Objects.
+  for (const o of st.objects) {
+    const [x, y] = toScreen(o.pos);
+    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    ctx.fillStyle = "#8a8f96";
+    ctx.fillRect(x - 3, y - 3, 6, 6);
+    S.hits.push({ x, y, r: 6, id: o.id });
+  }
+  // Vehicles.
+  for (const veh of st.vehicles) {
+    const [x, y] = toScreen(veh.pos);
+    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    const c = veh.alive ? SIDE_COLOR[veh.side] ?? SIDE_COLOR.unknown : "#555";
+    ctx.save(); ctx.translate(x, y); ctx.rotate((veh.dir * Math.PI) / 180);
+    ctx.fillStyle = c; ctx.fillRect(-6, -8, 12, 16);
+    ctx.strokeStyle = "#111"; ctx.strokeRect(-6, -8, 12, 16);
+    ctx.fillStyle = "#0b0e12"; ctx.fillRect(-2, -8, 4, 5);
+    ctx.restore();
+    if (veh.crew.length) { ctx.fillStyle = "#fff"; ctx.fillText(veh.crew.length, x + 9, y + 4); }
+    S.hits.push({ x, y, r: 10, id: veh.id });
+  }
+  // Units on foot (crews are drawn through their vehicle).
+  for (const u of st.units) {
+    if (u.vehicle) continue;
+    const [x, y] = toScreen(u.pos);
+    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    const c = SIDE_COLOR[u.side] ?? SIDE_COLOR.unknown;
+    if (!u.alive) {
+      ctx.strokeStyle = "#666"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x - 3, y - 3); ctx.lineTo(x + 3, y + 3); ctx.moveTo(x + 3, y - 3); ctx.lineTo(x - 3, y + 3); ctx.stroke();
+      ctx.lineWidth = 1;
+      S.hits.push({ x, y, r: 6, id: u.id });
+      continue;
+    }
+    const a = ((u.dir - 90) * Math.PI) / 180;
+    ctx.strokeStyle = c;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * 9, y + Math.sin(a) * 9); ctx.stroke();
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.arc(x, y, u.is_player ? 5.5 : 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#111"; ctx.stroke();
+    if (u.is_player) {
+      ctx.lineWidth = 4; ctx.strokeStyle = "#111"; ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); ctx.lineWidth = 1;
+    }
+    if (u.health < 1) { ctx.fillStyle = u.health > 0.5 ? "#e8b84a" : "#ff6161"; ctx.fillRect(x - 5, y + 7, 10 * u.health, 2); }
+    S.hits.push({ x, y, r: 7, id: u.id });
+  }
+
+  // Tracers: a line from the shooter along the shot direction, fading over 1.5 s.
+  const now = performance.now();
+  S.shots = S.shots.filter((s) => now - s.t < 1500);
+  if (S.layers.shots) {
+    ctx.lineCap = "round";
+    for (const s of S.shots) {
+      const heavy = /Shell|Rocket|Missile|Bomb/i.test(s.kind ?? "");
+      const flat = Math.hypot(s.dir[0], s.dir[1]);
+      if (flat < 0.05) continue;
+      const length = (heavy ? 400 : 150) * flat;
+      const a = toScreen(s.pos);
+      const b = toScreen([s.pos[0] + (s.dir[0] / flat) * length, s.pos[1] + (s.dir[1] / flat) * length]);
+      const fade = 1 - (now - s.t) / 1500;
+      const base = heavy ? "255,140,0" : s.side === "east" ? "255,70,70" : s.side === "independent" ? "60,200,100" : s.side === "west" ? "90,150,255" : "255,220,90";
+      ctx.strokeStyle = `rgba(${base},${(0.9 * fade).toFixed(2)})`;
+      ctx.lineWidth = heavy ? 3 : 1.5;
+      ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+  }
+
+  // Analyses: the last spatial question, drawn where it applies.
+  const ov = S.overlay;
+  if (ov && S.layers.analyses) {
+    ctx.lineWidth = 2;
+    if (ov.cmd === "query_visibility") {
+      const a = toScreen(ov.args.from), b = toScreen(ov.args.to);
+      const seen = ov.result.visibility >= 0.5 && !ov.result.terrain_blocked;
+      ctx.strokeStyle = seen ? "rgba(40,180,80,0.95)" : "rgba(230,50,50,0.95)";
+      ctx.setLineDash(seen ? [] : [8, 5]);
+      ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "bold 12px system-ui, sans-serif"; ctx.textAlign = "left";
+      haloText(ctx, `${seen ? "visible" : "caché"} · ${Math.round(ov.result.visibility * 100)} % · ${ov.result.distance} m${ov.result.terrain_blocked ? " · relief" : ""}`, (a[0] + b[0]) / 2 + 6, (a[1] + b[1]) / 2 - 6, "#111", "rgba(255,255,255,0.85)");
+    } else if (ov.cmd === "query_cover") {
+      const th = toScreen(ov.args.threat);
+      ctx.strokeStyle = "rgba(230,50,50,0.95)";
+      ctx.beginPath(); ctx.moveTo(th[0] - 7, th[1] - 7); ctx.lineTo(th[0] + 7, th[1] + 7); ctx.moveTo(th[0] + 7, th[1] - 7); ctx.lineTo(th[0] - 7, th[1] + 7); ctx.stroke();
+      for (const [p, vis, , inside] of ov.result.positions) {
+        const [x, y] = toScreen(p);
+        ctx.fillStyle = inside ? "rgba(140,90,255,0.9)" : "rgba(40,180,80,0.9)";
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#111"; ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 2;
+      }
+    } else if (ov.cmd === "query_area") {
+      const c = toScreen(ov.args.pos);
+      ctx.strokeStyle = "rgba(232,184,74,0.95)";
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.arc(c[0], c[1], (ov.args.radius ?? 500) * v.scale, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.lineWidth = 1;
+  }
+
+  // Selection and picked point.
+  if (S.selected) {
+    const p = posOf(S.selected);
+    if (p) {
+      const [x, y] = toScreen(p);
+      ctx.strokeStyle = "#e8b84a"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 1;
+    }
+  }
+  if (S.pick) {
+    const [x, y] = toScreen(S.pick);
+    ctx.strokeStyle = "#e8b84a";
+    ctx.beginPath(); ctx.moveTo(x - 9, y); ctx.lineTo(x + 9, y); ctx.moveTo(x, y - 9); ctx.lineTo(x, y + 9); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Scale bar.
+  const len = step * v.scale;
+  ctx.fillStyle = "#cfd6dd"; ctx.fillRect(W - 20 - len, H - 22, len, 2);
+  ctx.fillText(step >= 1000 ? step / 1000 + " km" : step + " m", W - 20 - len, H - 27);
+}
+
+// ------------------------------------------------------------------ background map
+
+const bg = document.createElement("canvas");
+const bgc = bg.getContext("2d");
+let bgKey = "";
+// Per road type: casing colour, fill colour, typical width in metres, minimum width in pixels.
+const ROAD_STYLE = {
+  "MAIN ROAD": ["#7b5a28", "#f2b24c", 10, 1.6],
+  "ROAD": ["#7d776e", "#fbf8f1", 7, 1.2],
+  "TRACK": [null, "#94784e", 4, 1],
+  "TRAIL": [null, "#a48d68", 2, 0.8],
+};
+// Per place type: font, minimum zoom (pixels per metre), colour.
+const PLACE_STYLE = {
+  NameCityCapital: ["bold 15px", 0, "#1b1b1b"], NameCity: ["bold 13px", 0, "#1b1b1b"], NameVillage: ["12px", 0.03, "#242424"],
+  NameLocal: ["italic 11px", 0.12, "#3b3b3b"], NameMarine: ["italic 12px", 0.02, "#1f4f7a"], Hill: ["10px", 0.25, "#5c4b30"],
+};
+
+function haloText(g, text, x, y, fill, halo) {
+  g.lineWidth = 3;
+  g.strokeStyle = halo;
+  g.lineJoin = "round";
+  g.strokeText(text, x, y);
+  g.fillStyle = fill;
+  g.fillText(text, x, y);
+}
+
+async function loadMap(world) {
+  S.mapLoading = true;
+  S.mapTry = performance.now();
+  try {
+    const r = await fetch(`/map/${encodeURIComponent(world)}`);
+    if (r.ok) {
+      const m = await r.json();
+      m.roadGroups = {};
+      // HIDE segments are invisible paths that guide the AI; the in-game map does not draw them either.
+      for (const road of m.roads) if (road[4] !== "HIDE") (m.roadGroups[ROAD_STYLE[road[4]] ? road[4] : "ROAD"] ??= []).push(road);
+      S.map = { world, data: m, img: buildTerrain(m), contours: buildContours(m) };
+      bgKey = "";
+      S.dirty = true;
+    }
+  } catch {}
+  S.mapLoading = false;
+}
+
+/**
+ * Contour lines and coastline as vector segments (marching squares over the height samples), so they
+ * stay sharp at any zoom. Returns flat [x1, y1, x2, y2, ...] world coordinates per set.
+ */
+function buildContours(m) {
+  const n = m.heights.n, h = m.heights.data, cell = m.heights.cell;
+  let top = 0;
+  for (const v of h) if (v > top) top = v;
+  const step = top > 400 ? 20 : 10;
+  const minor = [], major = [], coast = [];
+  const edge = (out, x1, y1, v1, x2, y2, v2, lvl) => {
+    const t = (lvl - v1) / (v2 - v1);
+    out.push(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
+  };
+  for (let j = 0; j < n - 1; j++) {
+    for (let i = 0; i < n - 1; i++) {
+      // Corners counter-clockwise from south-west, at sample centres.
+      const a = h[j * n + i], b = h[j * n + i + 1], c = h[(j + 1) * n + i + 1], d = h[(j + 1) * n + i];
+      const lo = Math.min(a, b, c, d), hi = Math.max(a, b, c, d);
+      if (lo === hi) continue;
+      const x0 = (i + 0.5) * cell, y0 = (j + 0.5) * cell, x1 = x0 + cell, y1 = y0 + cell;
+      for (let lvl = Math.ceil(lo / step) * step; lvl <= hi; lvl += step) {
+        if (lvl === lo) continue;
+        const pts = [];
+        if ((a < lvl) !== (b < lvl)) edge(pts, x0, y0, a, x1, y0, b, lvl);
+        if ((b < lvl) !== (c < lvl)) edge(pts, x1, y0, b, x1, y1, c, lvl);
+        if ((c < lvl) !== (d < lvl)) edge(pts, x1, y1, c, x0, y1, d, lvl);
+        if ((d < lvl) !== (a < lvl)) edge(pts, x0, y1, d, x0, y0, a, lvl);
+        const out = lvl === 0 ? coast : lvl % (step * 5) === 0 ? major : minor;
+        for (let p = 0; p + 3 < pts.length; p += 4) out.push(pts[p], pts[p + 1], pts[p + 2], pts[p + 3]);
+      }
+    }
+  }
+  return { step, minor: Float32Array.from(minor), major: Float32Array.from(major), coast: Float32Array.from(coast) };
+}
+
+/** Value of a w×w grid at fractional cell coordinates (u, v), blending the four nearest samples. */
+function bilinear(a, w, u, v) {
+  const i = Math.floor(u), j = Math.floor(v), fx = u - i, fy = v - j;
+  const i0 = Math.min(w - 1, Math.max(0, i)), i1 = Math.min(w - 1, Math.max(0, i + 1));
+  const j0 = Math.min(w - 1, Math.max(0, j)) * w, j1 = Math.min(w - 1, Math.max(0, j + 1)) * w;
+  return (a[j0 + i0] * (1 - fx) + a[j0 + i1] * fx) * (1 - fy) + (a[j1 + i0] * (1 - fx) + a[j1 + i1] * fx) * fy;
+}
+
+/**
+ * Shaded relief with hypsometric tints, forests, contour lines and coastline. Heights are interpolated
+ * up to 4 pixels per sample so slopes and lines stay smooth when zoomed in.
+ */
+function buildTerrain(m) {
+  const t0 = performance.now();
+  const n0 = m.heights.n, h0 = m.heights.data;
+  const fn = m.forest.n, fd = m.forest.data, fcell = m.forest.cell;
+  const k = Math.max(1, Math.min(4, Math.floor(2048 / n0)));
+  const n = n0 * k, cell = m.heights.cell / k;
+  const h = new Float32Array(n * n), forest = new Float32Array(n * n);
+  for (let j = 0; j < n; j++) {
+    const v = (j + 0.5) / k - 0.5, vf = ((j + 0.5) / n) * fn - 0.5;
+    for (let i = 0; i < n; i++) {
+      h[j * n + i] = bilinear(h0, n0, (i + 0.5) / k - 0.5, v);
+      forest[j * n + i] = bilinear(fd, fn, ((i + 0.5) / n) * fn - 0.5, vf);
+    }
+  }
+  const dense = (1.58 * fcell * fcell) / 40; // trees and bushes counted in a dense forest cell
+  let top = 0;
+  for (const v of h0) if (v > top) top = v;
+  const L = [-0.45, 0.45, 0.77]; // light from the north-west
+  const at = (i, j) => h[Math.min(n - 1, Math.max(0, j)) * n + Math.min(n - 1, Math.max(0, i))];
+  const c = document.createElement("canvas");
+  c.width = c.height = n;
+  const g = c.getContext("2d");
+  const img = g.createImageData(n, n);
+  const px = img.data;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const v = at(i, j), e = at(i + 1, j), nn = at(i, j + 1);
+      let r, gr, b;
+      if (v <= 0) {
+        const t = Math.min(1, -v / 60);
+        [r, gr, b] = [172 - 80 * t, 207 - 70 * t, 232 - 40 * t];
+      } else {
+        const t = Math.min(1, v / Math.max(150, top));
+        [r, gr, b] = [238 - 34 * t, 233 - 50 * t, 214 - 66 * t];
+        const d = Math.min(1, forest[j * n + i] / dense) * 0.75;
+        r += (146 - r) * d; gr += (194 - gr) * d; b += (118 - b) * d;
+        const dx = (e - at(i - 1, j)) / (2 * cell), dy = (nn - at(i, j - 1)) / (2 * cell);
+        const shade = (-dx * L[0] - dy * L[1] + L[2]) / Math.hypot(dx, dy, 1);
+        const k = 0.55 + 0.6 * Math.max(0, shade);
+        r *= k; gr *= k; b *= k;
+      }
+      const o = ((n - 1 - j) * n + i) * 4;
+      px[o] = r; px[o + 1] = gr; px[o + 2] = b; px[o + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  S.terrainMs = Math.round(performance.now() - t0);
+  return c;
+}
+
+function drawBackground(size) {
+  const v = S.view;
+  const dpr = window.devicePixelRatio || 1;
+  const key = [v.cx, v.cy, v.scale, W, H, size, S.map?.world ?? "", Object.values(S.layers).join()].join("|");
+  if (key === bgKey) return;
+  bgKey = key;
+  if (bg.width !== Math.round(W * dpr) || bg.height !== Math.round(H * dpr)) { bg.width = Math.round(W * dpr); bg.height = Math.round(H * dpr); }
+  const g = bgc;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#0b0e12";
+  g.fillRect(0, 0, W, H);
+  const [x0, y0] = toScreen([0, size]);
+  const m = S.map?.data;
+  if (S.map?.img && S.layers.relief) {
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    g.drawImage(S.map.img, x0, y0, size * v.scale, size * v.scale);
+  } else {
+    g.fillStyle = m ? "#e9e4d4" : "#121820";
+    g.fillRect(x0, y0, size * v.scale, size * v.scale);
+  }
+  if (!m) return;
+  const [wx0, wy1] = toWorld(0, 0);
+  const [wx1, wy0] = toWorld(W, H);
+  const seen = (x, y, pad) => x >= wx0 - pad && x <= wx1 + pad && y >= wy0 - pad && y <= wy1 + pad;
+
+  // Contour lines (minor ones only when zoomed in enough to read them) and coastline.
+  const contours = S.map.contours;
+  if (contours && S.layers.relief) {
+    const segments = (arr, color, width) => {
+      g.strokeStyle = color;
+      g.lineWidth = width;
+      g.beginPath();
+      for (let p = 0; p < arr.length; p += 4) {
+        if (!seen(arr[p], arr[p + 1], 50) && !seen(arr[p + 2], arr[p + 3], 50)) continue;
+        g.moveTo((arr[p] - v.cx) * v.scale + W / 2, H / 2 - (arr[p + 1] - v.cy) * v.scale);
+        g.lineTo((arr[p + 2] - v.cx) * v.scale + W / 2, H / 2 - (arr[p + 3] - v.cy) * v.scale);
+      }
+      g.stroke();
+    };
+    g.lineCap = "round";
+    if (v.scale * contours.step >= 3) segments(contours.minor, "rgba(128,92,52,0.38)", 0.8);
+    segments(contours.major, "rgba(128,92,52,0.65)", 1.2);
+    segments(contours.coast, "#4a6f8f", 1.5);
+  }
+
+  if (S.layers.roads) {
+    g.lineCap = "round";
+    for (const pass of [0, 1]) {
+      for (const [type, list] of Object.entries(m.roadGroups)) {
+        const st = ROAD_STYLE[type];
+        if (!st[pass] || (v.scale < 0.08 && type !== "MAIN ROAD")) continue;
+        const w = Math.max(st[3], st[2] * v.scale);
+        g.lineWidth = pass === 0 ? w + 2 : w;
+        g.strokeStyle = st[pass];
+        g.setLineDash(type === "TRACK" || type === "TRAIL" ? [5, 3] : []);
+        g.beginPath();
+        for (const r of list) {
+          if (!seen(r[0], r[1], 300) && !seen(r[2], r[3], 300)) continue;
+          g.moveTo(...toScreen([r[0], r[1]]));
+          g.lineTo(...toScreen([r[2], r[3]]));
+        }
+        g.stroke();
+      }
+    }
+    g.setLineDash([]);
+  }
+
+  if (S.layers.buildings && v.scale > 0.25) {
+    g.fillStyle = "#5d5850";
+    for (const b of m.buildings) {
+      if (!seen(b[0], b[1], 50)) continue;
+      const [x, y] = toScreen([b[0], b[1]]);
+      g.save();
+      g.translate(x, y);
+      g.rotate((b[2] * Math.PI) / 180);
+      g.fillRect((-b[3] / 2) * v.scale, (-b[4] / 2) * v.scale, Math.max(1.5, b[3] * v.scale), Math.max(1.5, b[4] * v.scale));
+      g.restore();
+    }
+  }
+
+  if (S.layers.names) {
+    g.textAlign = "center";
+    for (const p of m.places) {
+      const st = PLACE_STYLE[p[1]] ?? PLACE_STYLE.NameLocal;
+      if (v.scale < st[1] || !seen(p[2], p[3], 500)) continue;
+      g.font = `${st[0]} system-ui, "Segoe UI", sans-serif`;
+      const [x, y] = toScreen([p[2], p[3]]);
+      haloText(g, p[0], x, y, st[2], "rgba(255,255,255,0.85)");
+    }
+    g.textAlign = "left";
+  }
+}
+
+function hitAt(x, y) {
+  let best = null, bd = Infinity;
+  for (const h of S.hits) {
+    const d = Math.hypot(h.x - x, h.y - y);
+    if (d <= h.r + 2 && d < bd) { best = h; bd = d; }
+  }
+  return best;
+}
+
+let drag = null;
+canvas.addEventListener("mousedown", (e) => { drag = { x: e.offsetX, y: e.offsetY, cx: S.view?.cx, cy: S.view?.cy, moved: false }; });
+window.addEventListener("mouseup", (e) => {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  if (d.moved || !S.view || e.target !== canvas) return;
+  const h = hitAt(e.offsetX, e.offsetY);
+  if (h && !S.placing) { select(h.id); return; }
+  const p = toWorld(e.offsetX, e.offsetY);
+  S.pick = [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10];
+  if (S.activePos) setPos(S.activePos, S.pick);
+  if (S.placing) { sendForm(); S.dirty = true; return; }
+  toast(`Point choisi : ${Math.round(p[0])}, ${Math.round(p[1])}`);
+  S.dirty = true;
+});
+canvas.addEventListener("mousemove", (e) => {
+  if (!S.view) return;
+  if (drag) {
+    const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+    if (Math.hypot(dx, dy) > 4) drag.moved = true;
+    if (drag.moved) { S.view.cx = drag.cx - dx / S.view.scale; S.view.cy = drag.cy + dy / S.view.scale; S.follow = false; $("#v-follow").classList.remove("on"); S.dirty = true; }
+  }
+  const h = hitAt(e.offsetX, e.offsetY);
+  const tip = $("#tip");
+  if (h && !drag?.moved) {
+    const e2 = S.index.get(h.id)?.e;
+    tip.innerHTML = `<b>${esc(h.id)}</b> · ${esc(e2?.type)}${e2?.name && e2.name !== e2.type ? " · " + esc(e2.name) : ""}${e2?.health !== undefined ? ` · ${Math.round(e2.health * 100)} %` : ""}`;
+    tip.style.display = "block";
+    tip.style.left = e.offsetX + 14 + "px";
+    tip.style.top = e.offsetY + 10 + "px";
+  } else tip.style.display = "none";
+});
+canvas.addEventListener("wheel", (e) => {
+  if (!S.view) return;
+  e.preventDefault();
+  const before = toWorld(e.offsetX, e.offsetY);
+  S.view.scale = Math.min(40, Math.max(0.005, S.view.scale * (e.deltaY < 0 ? 1.25 : 0.8)));
+  const after = toWorld(e.offsetX, e.offsetY);
+  S.view.cx += before[0] - after[0];
+  S.view.cy += before[1] - after[1];
+  S.dirty = true;
+}, { passive: false });
+
+// ------------------------------------------------------------------ misc UI
+
+let toastTimer = 0;
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text;
+  t.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.style.display = "none"), 3000);
+}
+
+for (const b of document.querySelectorAll(".tabs button")) {
+  b.onclick = () => {
+    document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("active", x === b));
+    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x.id === b.dataset.tab));
+    renderSide();
+    renderCatalog();
+  };
+}
+$("#entsub").addEventListener("click", (e) => { const k = e.target.dataset?.k; if (k) { S.entTab = k; renderEntities(); } });
+$("#enttable").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-id]"); if (tr) select(tr.dataset.id, true); });
+$("#entfilter").oninput = renderEntities;
+$("#catsub").addEventListener("click", (e) => { const k = e.target.dataset?.k; if (k) { S.catTab = k; renderCatalog(); } });
+$("#cattable").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-v]"); if (tr) pickCatalog(tr.dataset.v); });
+$("#catfilter").oninput = renderCatalog;
+$("#placemode").onchange = (e) => setPlacing(e.target.checked);
+$("#cmd").addEventListener("change", () => setPlacing(false));
+$("#evfilter").onchange = renderEvents;
+$("#evclear").onclick = () => { S.events = []; $("#evlist").innerHTML = '<div class="muted">Aucun événement pour l\'instant.</div>'; };
+$("#send").onclick = sendForm;
+$("#sendraw").onclick = () => {
+  try { const m = JSON.parse($("#raw").value); send(m.cmd, m.args ?? {}); } catch { toast("JSON invalide"); }
+};
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && $("#t-cmd").contains(document.activeElement)) { e.preventDefault(); sendForm(); }
+  if (e.key === "Escape") { if (S.placing) setPlacing(false); else select(null); }
+});
+$("#v-me").onclick = () => { const m = me(); if (m && S.view) { S.view.cx = m.pos[0]; S.view.cy = m.pos[1]; S.view.scale = Math.max(S.view.scale, Math.min(W, H) / 500); S.dirty = true; } else toast("Aucun joueur connecté"); };
+$("#v-all").onclick = () => { if (!S.state) return; const size = S.state.world?.size || 8192; S.view = { cx: size / 2, cy: size / 2, scale: Math.min(W, H) / size }; S.dirty = true; };
+$("#v-follow").onclick = () => { S.follow = !S.follow; $("#v-follow").classList.toggle("on", S.follow); if (S.follow && !S.selected) toast("Sélectionnez une entité à suivre"); };
+for (const b of document.querySelectorAll("[data-layer]")) {
+  b.onclick = () => {
+    S.layers[b.dataset.layer] = !S.layers[b.dataset.layer];
+    b.classList.toggle("on", S.layers[b.dataset.layer]);
+    S.dirty = true;
+  };
+}
+window.addEventListener("resize", resize);
+resize();
+boot();
+</script>
+</body>
+</html>

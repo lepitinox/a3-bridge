@@ -1,0 +1,18 @@
+[
+  {"name": "artillery",    "kind": "projectile", "class": "Sh_155mm_AMOS",            "altitude": 200, "speed": 150, "description": "Obus d'artillerie explosif de 155 mm qui tombe du ciel."},
+  {"name": "mortar",       "kind": "projectile", "class": "Sh_82mm_AMOS",             "altitude": 150, "speed": 90,  "description": "Obus de mortier explosif de 82 mm."},
+  {"name": "bomb",         "kind": "projectile", "class": "Bo_GBU12_LGB",             "altitude": 150, "speed": 120, "description": "Bombe de 500 livres (grosse explosion)."},
+  {"name": "rockets",      "kind": "projectile", "class": "R_80mm_HE",                "altitude": 80,  "speed": 200, "description": "Roquette explosive de 80 mm."},
+  {"name": "grenade",      "kind": "projectile", "class": "GrenadeHand",              "altitude": 1,   "speed": 1,   "description": "Grenade à main qui explose après quelques secondes."},
+  {"name": "smoke_white",  "kind": "smoke",      "class": "SmokeShell",               "altitude": 0,   "speed": 0,   "description": "Fumigène blanc."},
+  {"name": "smoke_red",    "kind": "smoke",      "class": "SmokeShellRed",            "altitude": 0,   "speed": 0,   "description": "Fumigène rouge."},
+  {"name": "smoke_green",  "kind": "smoke",      "class": "SmokeShellGreen",          "altitude": 0,   "speed": 0,   "description": "Fumigène vert."},
+  {"name": "smoke_blue",   "kind": "smoke",      "class": "SmokeShellBlue",           "altitude": 0,   "speed": 0,   "description": "Fumigène bleu."},
+  {"name": "smoke_screen", "kind": "projectile", "class": "Smoke_120mm_AMOS_White",   "altitude": 150, "speed": 90,  "description": "Obus fumigène d'artillerie : grand écran de fumée."},
+  {"name": "flare_white",  "kind": "flare",      "class": "F_40mm_White",             "altitude": 150, "speed": 3,   "description": "Fusée éclairante blanche qui descend lentement."},
+  {"name": "flare_red",    "kind": "flare",      "class": "F_40mm_Red",               "altitude": 150, "speed": 3,   "description": "Fusée éclairante rouge."},
+  {"name": "flare_green",  "kind": "flare",      "class": "F_40mm_Green",             "altitude": 150, "speed": 3,   "description": "Fusée éclairante verte."},
+  {"name": "mine_at",      "kind": "mine",       "class": "ATMine",                   "altitude": 0,   "speed": 0,   "description": "Mine antichar posée au sol."},
+  {"name": "mine_ap",      "kind": "mine",       "class": "APERSMine",                "altitude": 0,   "speed": 0,   "description": "Mine antipersonnel posée au sol."},
+  {"name": "ied",          "kind": "mine",       "class": "IEDUrbanBig_F",            "altitude": 0,   "speed": 0,   "description": "Gros engin explosif improvisé (IED) urbain."}
+]
