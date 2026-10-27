@@ -131,7 +131,8 @@ Le détail de chaque ordre, champ, événement et réglage est dans [docs/PROTOC
 - Avec le faux scénario lancé : `node tests/mcp_test.mjs 8799` et
   `node tests/ui_test.mjs 8799 "<chemin de msedge.exe>" tests/ui_shots` (page web dans Edge invisible).
 - Sur le vrai moteur (partie lancée avec le mod) : `tests/live_test.mjs`, `live_spawn_test.mjs`,
-  `live_tactics_test.mjs`, `live_perception_test.mjs`, `live_chat_test.mjs`, `mcp_test.mjs <port> --live`.
+  `live_tactics_test.mjs`, `live_perception_test.mjs`, `live_chat_test.mjs`, `mcp_test.mjs <port> --live`,
+  `live_replay_test.mjs <port> "<chemin de msedge.exe>" tests/ui_shots` (rejoue la plus longue partie enregistrée).
 
 ## Limites et sécurité
 

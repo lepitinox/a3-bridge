@@ -851,7 +851,9 @@ async function openReplay(id) {
   $("#rp-name").title = new Date(rp.header.started_at * 1000).toLocaleString("fr-FR");
   const kinds = [...new Set(rp.moments.map((m) => m.kind).filter((k) => k !== "command"))];
   $("#rev-filter").innerHTML = '<option value="">Tous</option><option value="command">Ordres reçus</option>' + kinds.map((k) => `<option>${esc(k)}</option>`).join("");
-  seekReplay(rp.start);
+  // Scenarios often begin with an empty map (lobby, mission choice): start where the first units appear.
+  const first = rp.frames.find((f) => Object.keys(f.set?.units ?? {}).length);
+  seekReplay(first ? first.t : rp.start);
   setPlaying(false);
   renderReplayList();
   renderMoments();
