@@ -176,7 +176,9 @@ if (!live) {
     const frames = lines.filter((l) => l.type === "frame");
     check(lines[0]?.type === "header" && lines[0].entities?.some((e) => e.name === "units"), "recording starts with a header");
     check(frames.length >= 2 && frames[0].set.units && Object.keys(frames[0].set.units).length > 0, "first frame holds every unit", `${frames.length} frames`);
-    check(frames.length < 2 || JSON.stringify(frames.at(-1)).length < JSON.stringify(frames[0]).length, "later frames only hold changes");
+    // A unit that moved is written again with only its changed fields (no type, name, side...).
+    const partial = frames.slice(1).flatMap((f) => Object.values(f.set.units ?? {})).filter((u) => !("type" in u) && "pos" in u).length;
+    check(partial > 0, "later frames only hold changes", `${partial} partial unit rows`);
     check(lines.some((l) => l.type === "event") && lines.some((l) => l.type === "command" && typeof l.ok === "boolean" && l.source === "http"), "events and commands are recorded");
     check(cur.duration > 0 && cur.bytes > 0, "list gives duration and size", `${cur.duration} s, ${cur.bytes} bytes`);
   }
