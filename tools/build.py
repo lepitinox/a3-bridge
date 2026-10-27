@@ -1,14 +1,17 @@
 """Builds the A3 Bridge mod from the design tables.
 
 Steps: validate the tables -> generate SQF, config, spec and docs -> compile the extension -> pack the mod.
-Usage: python tools/build.py [--no-cargo | --ui-only] [--dist <folder>]   (default folder: dist)
+Usage: python tools/build.py [--no-cargo | --ui-only | --release | --version] [--dist <folder>]   (default folder: dist)
 --ui-only copies just the web page into the mod folder, which works while the game is running.
+--release also writes the downloadable zip (a3_bridge-<version>.zip, next to the mod folder).
+--version prints the version, read from ext/Cargo.toml.
 """
 import json
 import os
 import re
 import shutil
 import subprocess
+import zipfile
 import sys
 from pathlib import Path
 
@@ -21,7 +24,8 @@ SRC = ROOT / "src" / "sqf"
 UI = ROOT / "src" / "ui" / "index.html"
 BUILD = ROOT / "build"
 DIST = ROOT / "dist" / "@a3_bridge"
-VERSION = "1.0.0"
+# The version lives in ext/Cargo.toml only; the DLL reads it there too.
+VERSION = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "ext" / "Cargo.toml").read_text(encoding="utf-8"), re.M).group(1)
 
 TABLES = {
     "types": ["name", "kind", "values", "catalog", "sqf_default_type", "description"],
@@ -745,9 +749,59 @@ def package(t, dll, dist):
     copy_ui(dist)
     shutil.copyfile(ROOT / "docs" / "PROTOCOL.md", dist / "PROTOCOL.md")
     shutil.copyfile(ROOT / "docs" / "llm_tools.json", dist / "llm_tools.json")
+    shutil.copyfile(ROOT / "LICENSE", dist / "LICENSE")
+
+
+README_TXT = r"""A3 Bridge {version}
+==================
+
+Mod Arma 3 qui relie une partie en cours à un programme externe (par exemple Claude) :
+le jeu publie son état et ses événements, et exécute des ordres venus de l'extérieur.
+Documentation complète : https://github.com/lepitinox/a3-bridge
+
+Contenu
+-------
+@a3_bridge\              le mod (à charger dans le jeu ou sur le serveur)
+@a3_bridge\PROTOCOL.md   détail de chaque ordre, événement et réglage
+mcp\arma_mcp.mjs         serveur MCP pour piloter le jeu depuis Claude (Node 22+)
+
+Installation
+------------
+1. Copier le dossier @a3_bridge où vous voulez (par exemple dans le dossier d'Arma 3).
+2. Solo : lancer Arma 3 SANS BattlEye, avec @a3_bridge comme mod local dans le launcher.
+   Serveur dédié : ajouter -serverMod=<chemin>\@a3_bridge ; les joueurs n'ont rien à installer.
+3. Pendant une partie, ouvrir http://127.0.0.1:8765/ui dans un navigateur.
+4. Optionnel, avec Claude : claude mcp add arma -- node <chemin>\mcp\arma_mcp.mjs
+
+Réglages : copier @a3_bridge\a3_bridge.example.json en a3_bridge.json et le modifier.
+Journal : %LOCALAPPDATA%\Arma 3\a3_bridge.log
+Parties enregistrées : %LOCALAPPDATA%\Arma 3\a3_bridge_replays
+
+Sécurité : la passerelle n'écoute que 127.0.0.1, mais tout programme local peut piloter
+la partie (y compris exec_sqf). À n'utiliser que sur une machine de confiance.
+
+Licence MIT, voir LICENSE.
+"""
+
+
+def release_zip(dist):
+    """The ready-to-use download: the mod folder, the MCP server, a short guide and the licence."""
+    path = dist.parent / f"a3_bridge-{VERSION}.zip"
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(dist.rglob("*")):
+            if p.is_file():
+                z.write(p, f"@a3_bridge/{p.relative_to(dist).as_posix()}")
+        z.write(ROOT / "mcp" / "arma_mcp.mjs", "mcp/arma_mcp.mjs")
+        # Windows line endings and a UTF-8 signature, so that any text editor shows the accents.
+        z.writestr("LISEZMOI.txt", ("﻿" + README_TXT.format(version=VERSION)).replace("\n", "\r\n").encode("utf-8"))
+        z.write(ROOT / "LICENSE", "LICENSE")
+    return path
 
 
 def main():
+    if "--version" in sys.argv:
+        print(VERSION)
+        return
     t = load_tables()
     problems = validate(t)
     if problems:
@@ -770,6 +824,8 @@ def main():
     dll = cargo_build()
     package(t, dll, dist)
     print(f"Packed mod in {dist}")
+    if "--release" in sys.argv:
+        print(f"Release zip: {release_zip(dist)}")
 
 
 if __name__ == "__main__":

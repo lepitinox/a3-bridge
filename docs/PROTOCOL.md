@@ -1,4 +1,4 @@
-# A3 Bridge 1.0.0 : protocole
+# A3 Bridge 1.1.0 : protocole
 
 _Généré depuis les tableaux de `design/` par `tools/build.py`._
 

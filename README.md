@@ -1,5 +1,10 @@
 # A3 Bridge
 
+[![Build](https://github.com/lepitinox/a3-bridge/actions/workflows/build.yml/badge.svg)](https://github.com/lepitinox/a3-bridge/actions/workflows/build.yml)
+
+**Télécharger la dernière version prête à l'emploi : [Releases](../../releases/latest)** (`a3_bridge-<version>.zip` :
+le mod, le serveur MCP et un guide d'installation `LISEZMOI.txt`, sans rien à compiler).
+
 Mod Arma 3 qui relie une partie en cours à un programme externe — par exemple un LLM comme Claude :
 
 - **le jeu publie son état** (unités, véhicules, groupes, objets, marqueurs, météo) 10 fois par seconde, et ses
@@ -27,6 +32,8 @@ qui expose le tout à Claude.
 
 ## Construire le mod
 
+Seulement pour modifier le mod : la version prête à l'emploi se télécharge dans les [Releases](../../releases/latest).
+
 Prérequis (Windows) :
 
 - **Rust** avec la chaîne GNU, sans Visual Studio :
@@ -43,7 +50,7 @@ Le script vérifie d'abord les tableaux (aucune case vide, aucune référence ca
 génère les scripts du jeu, la configuration, la spécification et la documentation, compile la DLL puis emballe le mod
 dans `dist/@a3_bridge`. Options : `--dist <dossier>` pour construire ailleurs (le mod est verrouillé tant qu'un jeu
 l'utilise), `--ui-only` pour ne mettre à jour que la page web (même pendant une partie), `--no-cargo` pour s'arrêter
-avant la compilation.
+avant la compilation, `--release` pour produire aussi le zip prêt à l'emploi.
 
 ## Utiliser le mod
 
@@ -144,6 +151,18 @@ Le détail de chaque ordre, champ, événement et réglage est dans [docs/PROTOC
   s'installer.
 - Le moteur limite les groupes à 288 par camp ; `str` arrondit les nombres à 6 chiffres significatifs (≈ 10 cm sur
   Altis).
+
+## Publier une version
+
+L'action GitHub [`build.yml`](.github/workflows/build.yml) construit le mod sous Windows à chaque envoi, lance le test
+sans le jeu et garde le zip prêt à l'emploi (onglet Actions, « Artifacts »). Pour publier une version :
+
+1. changer `version` dans `ext/Cargo.toml` (la seule source du numéro : la DLL, la spécification et le zip le lisent) ;
+2. committer, puis envoyer une étiquette du même numéro :
+   `git tag v1.2.0` puis `git push origin v1.2.0`.
+
+L'action vérifie que l'étiquette correspond à la version, puis crée la release avec `a3_bridge-<version>.zip` et la
+liste des changements. En local, `python -I tools/build.py --release` produit le même zip dans `dist/`.
 
 ## Licence
 

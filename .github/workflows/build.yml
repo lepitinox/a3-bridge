@@ -1,0 +1,92 @@
+# Builds the mod on Windows, runs the offline test (fake scenario loading the real DLL) and keeps the
+# ready-to-use zip as an artifact. A tag vX.Y.Z (matching the version in ext/Cargo.toml) also publishes
+# it as a GitHub release.
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The same toolchain as the README (GNU, no Visual Studio), so the DLL is built the same way.
+      - name: Install Rust (GNU toolchain)
+        run: |
+          rustup toolchain install stable-x86_64-pc-windows-gnu --profile minimal
+          rustup default stable-x86_64-pc-windows-gnu
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ext/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('ext/Cargo.lock') }}
+
+      - name: Read the version
+        id: version
+        run: |
+          $v = python -I tools/build.py --version
+          "version=$v" >> $env:GITHUB_OUTPUT
+          if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$v") {
+            throw "tag $env:GITHUB_REF_NAME does not match version $v in ext/Cargo.toml"
+          }
+
+      - name: Check the tables, generate, compile and pack
+        run: python -I tools/build.py --release
+
+      - name: Offline test
+        run: python -I tests/fake_game.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a3_bridge-${{ steps.version.outputs.version }}
+          path: dist/a3_bridge-${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: a3_bridge-${{ needs.build.outputs.version }}
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          cat > notes.md <<EOF
+          **Télécharger :** \`a3_bridge-$VERSION.zip\` ci-dessous (mod, serveur MCP et guide \`LISEZMOI.txt\`).
+
+          1. Décompresser et copier le dossier \`@a3_bridge\` où vous voulez.
+          2. Solo : lancer Arma 3 **sans BattlEye** avec \`@a3_bridge\` comme mod local. Serveur dédié : \`-serverMod=<chemin>\\@a3_bridge\` (rien à installer pour les joueurs).
+          3. Pendant une partie : http://127.0.0.1:8765/ui
+          4. Avec Claude : \`claude mcp add arma -- node <chemin>/mcp/arma_mcp.mjs\`
+          EOF
+          gh release create "$GITHUB_REF_NAME" "a3_bridge-$VERSION.zip" --repo "$GITHUB_REPOSITORY" \
+            --title "A3 Bridge $VERSION" --notes-file notes.md --generate-notes

@@ -3,7 +3,7 @@
 // Every game command becomes a tool (from GET /schema, generated from the design tables), plus
 // read tools: situation, events, player chat (with waiting) and catalog search.
 //   node mcp/arma_mcp.mjs            (gateway at http://127.0.0.1:8765, or A3B_URL)
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
@@ -47,7 +47,9 @@ async function loadGameTools() {
   try {
     tools = (await get("/schema")).tools;
   } catch {
-    tools = JSON.parse(readFileSync(join(HERE, "..", "docs", "llm_tools.json"), "utf8"));
+    // docs/ in the repository; @a3_bridge/ next to mcp/ in the downloadable zip.
+    const files = [join(HERE, "..", "docs", "llm_tools.json"), join(HERE, "..", "@a3_bridge", "llm_tools.json")];
+    tools = JSON.parse(readFileSync(files.find((f) => existsSync(f)) ?? files[0], "utf8"));
   }
   gameTools = tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.input_schema, cmd: t.name.replace(/^arma_/, "") }));
   return gameTools;
