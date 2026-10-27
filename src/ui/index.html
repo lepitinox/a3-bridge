@@ -87,6 +87,17 @@ tr.sel td { background: #3a3220; }
 #selbox .meta { color: var(--muted); font-size: 12px; margin: 3px 0 7px; word-break: break-word; }
 #selbox .acts { display: flex; flex-wrap: wrap; gap: 5px; }
 .muted { color: var(--muted); }
+#replaybar { position: absolute; left: 8px; right: 8px; bottom: 8px; display: none; flex-wrap: wrap; gap: 6px; align-items: center; background: #000c; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+#replaybar.show { display: flex; }
+#replaybar select { width: auto; }
+#rp-name { color: var(--accent); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+#rp-line { order: 10; flex: 1 1 100%; height: 26px; cursor: pointer; }
+#rp-time { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+body.replay #toast { bottom: 64px; }
+#momlist .ev { cursor: pointer; }
+#momlist .ev.future { opacity: .4; }
+#momlist code { display: block; white-space: pre-wrap; word-break: break-all; color: var(--muted); font-size: 11px; }
+.tag.command { color: var(--accent); }
 @media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: 55vh auto; } aside { border-left: 0; border-top: 1px solid var(--line); } }
 </style>
 </head>
@@ -125,6 +136,16 @@ tr.sel td { background: #3a3220; }
     <div id="toast"></div>
     <div id="hint">Clic : choisir une position ou une entité · glisser : déplacer · molette : zoom · Échap : désélectionner</div>
     <div id="placing"></div>
+    <div id="replaybar">
+      <span id="rp-name"></span>
+      <button class="btn" id="rp-play" title="Lecture / pause (Espace)">▶</button>
+      <button class="btn" id="rp-back">−10 s</button>
+      <button class="btn" id="rp-fwd">+10 s</button>
+      <select id="rp-speed" title="Vitesse de lecture"><option value="1">×1</option><option value="2">×2</option><option value="5">×5</option><option value="10" selected>×10</option><option value="30">×30</option><option value="60">×60</option></select>
+      <canvas id="rp-line"></canvas>
+      <span id="rp-time">00:00 / 00:00</span>
+      <button class="btn primary" id="rp-live">Retour au direct</button>
+    </div>
   </div>
   <aside>
     <nav class="tabs">
@@ -132,6 +153,7 @@ tr.sel td { background: #3a3220; }
       <button data-tab="t-cat">Catalogue</button>
       <button data-tab="t-ent">Entités</button>
       <button data-tab="t-ev">Événements</button>
+      <button data-tab="t-rev">Revue</button>
     </nav>
     <div style="min-height:0; display:grid">
       <section id="t-cmd" class="tab active">
@@ -170,6 +192,17 @@ tr.sel td { background: #3a3220; }
         </div>
         <div id="evlist" style="margin-top:8px"><div class="muted">Aucun événement pour l'instant.</div></div>
       </section>
+      <section id="t-rev" class="tab">
+        <div class="row"><b style="flex:1">Parties enregistrées</b><button class="btn" id="rev-refresh">Actualiser</button></div>
+        <div class="help">Chaque partie est enregistrée automatiquement. Choisissez-en une pour la revoir sur la carte, avec les tirs, les morts, le chat et les ordres reçus.</div>
+        <div style="margin-top:8px"><table id="revtable"></table></div>
+        <div id="rev-moments" style="display:none">
+          <h3>Moments clés</h3>
+          <select id="rev-filter"><option value="">Tous</option><option value="command">Ordres reçus</option></select>
+          <div class="help">Cliquez sur un moment pour y aller ; une question sur le terrain réaffiche sa réponse sur la carte.</div>
+          <div id="momlist" style="margin-top:6px"></div>
+        </div>
+      </section>
     </div>
     <div id="selbox"><div class="muted">Cliquez sur une unité, un véhicule, un groupe ou un objet pour le sélectionner.</div></div>
   </aside>
@@ -194,6 +227,7 @@ const S = {
   layers: { relief: true, roads: true, buildings: true, names: true, shots: true, analyses: true },
   shots: [], overlay: null,
   spec: null, catalog: null, catalogLoading: false, catTab: "units", placing: false,
+  live: null, replay: null, replays: null, replayRole: {},
 };
 
 // ------------------------------------------------------------------ connection
@@ -204,6 +238,7 @@ async function boot() {
     S.tools = schema.tools.map((t) => ({ ...t, cmd: t.name.replace(/^arma_/, "") }));
     for (const t of S.tools) S.byName[t.cmd] = t;
     S.spec = await (await fetch("/spec")).json();
+    S.replayRole = Object.fromEntries(S.spec.events.map((e) => [e.name, e.replay]));
   } catch (e) {
     toast("Impossible de lire /schema : la passerelle est-elle lancée ?");
   }
@@ -242,14 +277,21 @@ async function pollHealth() {
 }
 
 function onState(st) {
+  const now = performance.now();
+  S.stateTimes.push(now);
+  while (S.stateTimes.length && now - S.stateTimes[0] > 2000) S.stateTimes.shift();
+  S.live = st;
+  if (!S.replay) applyState(st);
+}
+
+// Shows a state on the map and in the tables: the live one, or one rebuilt from a recording.
+function applyState(st) {
+  const now = performance.now();
   S.state = st;
   S.index = new Map();
   for (const k of ["units", "vehicles", "groups", "objects"]) for (const e of st[k] ?? []) S.index.set(e.id, { kind: k, e });
   for (const m of st.markers ?? []) S.index.set("marker:" + m.name, { kind: "markers", e: { ...m, id: "marker:" + m.name } });
   if (!S.catalog && !S.catalogLoading && S.health?.catalog?.ready) loadCatalog();
-  const now = performance.now();
-  S.stateTimes.push(now);
-  while (S.stateTimes.length && now - S.stateTimes[0] > 2000) S.stateTimes.shift();
   if (!S.view) fitInitial();
   const world = st.world?.world;
   if (world && S.map?.world !== world && !S.mapLoading && now - S.mapTry > 3000) loadMap(world);
@@ -258,8 +300,8 @@ function onState(st) {
 }
 
 function onEvent(ev) {
-  // Shots become short-lived tracers on the map (shots layer).
-  if ((ev.event === "fired" || ev.event === "player_fired") && ev.data?.pos?.length && ev.data?.dir?.length) {
+  // Shots become short-lived tracers on the map (shots layer), unless a recording is shown.
+  if (!S.replay && (ev.event === "fired" || ev.event === "player_fired") && ev.data?.pos?.length && ev.data?.dir?.length) {
     S.shots.push({ pos: ev.data.pos, dir: ev.data.dir, kind: ev.data.kind, side: ev.data.side, t: performance.now() });
     if (S.shots.length > 400) S.shots.splice(0, S.shots.length - 400);
   }
@@ -286,7 +328,7 @@ function send(cmd, args) {
       logResult(cmd, args, msg, ms);
       resolve(msg);
     });
-    S.ws.send(JSON.stringify({ type: "command", id, cmd, args }));
+    S.ws.send(JSON.stringify({ type: "command", id, cmd, args, source: "ui" }));
   });
 }
 const run = (o) => send(o.cmd, o.args);
@@ -313,7 +355,7 @@ function updateHeader() {
   $("#d-ws").classList.toggle("on", S.wsOpen);
   $("#d-game").classList.toggle("on", S.game);
   $("#mission").textContent = S.game && S.mission ? `${S.mission.mission} · ${S.mission.world}${S.mission.dedicated ? " · dédié" : ""}` : "aucun scénario";
-  $("#banner").classList.toggle("show", !S.game);
+  $("#banner").classList.toggle("show", !S.game && !S.replay);
   const st = S.state;
   const world = st?.world?.world;
   const ms = S.health?.map;
@@ -711,13 +753,18 @@ function renderEvents() {
   const f = $("#evfilter").value;
   const list = S.events.filter((e) => !f || e.event === f).slice(-300).reverse();
   if (!list.length) return;
-  $("#evlist").innerHTML = list.map((e) => {
-    const t = Math.max(0, Math.floor(e.time ?? 0));
-    const ts = `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-    const data = Object.entries(e.data ?? {}).filter(([, v]) => v !== "" && v !== null).map(([k, v]) => `${k}=${Array.isArray(v) ? v.map((x) => (typeof x === "number" ? Math.round(x) : x)).join(",") : v}`).join(" ");
-    return `<div class="ev"><span class="t">${ts}</span><span class="tag ${esc(e.event)}">${esc(e.event)}</span>${esc(data)}</div>`;
-  }).join("");
+  $("#evlist").innerHTML = list.map((e) =>
+    `<div class="ev"><span class="t">${fmtTime(e.time ?? 0)}</span><span class="tag ${esc(e.event)}">${esc(e.event)}</span>${esc(eventSummary(e.data))}</div>`).join("");
 }
+
+function fmtTime(t) {
+  t = Math.max(0, Math.floor(t));
+  const h = Math.floor(t / 3600), mm = String(Math.floor(t / 60) % 60).padStart(2, "0"), ss = String(t % 60).padStart(2, "0");
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+const eventSummary = (data) => Object.entries(data ?? {}).filter(([, v]) => v !== "" && v !== null)
+  .map(([k, v]) => `${k}=${Array.isArray(v) ? v.map((x) => (typeof x === "number" ? Math.round(x) : x)).join(",") : v}`).join(" ");
 
 function renderSide() {
   updateHeader();
@@ -726,6 +773,256 @@ function renderSide() {
   if (!S.catalog && !S.catalogLoading && S.health?.catalog?.ready) loadCatalog();
   if (!S.catalog) renderCatalog();
   if (S.selected) renderSelection();
+  if (S.replay && $("#t-rev").classList.contains("active")) markMoments();
+}
+
+// ------------------------------------------------------------------ review (recorded games)
+
+// A recording is a header, then frames holding only what changed since the previous one. A full
+// copy is kept every KEYFRAME_EVERY frames, so jumping anywhere replays at most that many frames.
+const KEYFRAME_EVERY = 30;
+const ANALYSES = ["query_visibility", "query_cover", "query_area"];
+const MOMENT_COLOR = { command: "#e8b84a", killed: "#ff6161", chat: "#e0e0e0", enemy_detected: "#ff9a4a", combat_changed: "#7fb2ff", group_fleeing: "#7fb2ff" };
+const fmtSize = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} Mo` : `${Math.max(1, Math.round(b / 1e3))} Ko`);
+
+async function loadReplays() {
+  try {
+    S.replays = (await (await fetch("/replays")).json()).replays;
+  } catch {
+    S.replays = null;
+  }
+  renderReplayList();
+}
+
+function renderReplayList() {
+  const rows = S.replays;
+  if (!rows) { $("#revtable").innerHTML = '<tr><td class="muted">Passerelle injoignable.</td></tr>'; return; }
+  if (!rows.length) { $("#revtable").innerHTML = '<tr><td class="muted">Aucune partie enregistrée pour l\'instant.</td></tr>'; return; }
+  $("#revtable").innerHTML = "<tr><th>Début</th><th>Scénario</th><th>Carte</th><th>Durée</th><th>Taille</th></tr>" + rows.map((r) =>
+    `<tr data-rid="${esc(r.id)}" class="${S.replay?.id === r.id ? "sel" : ""}">` +
+    `<td>${esc(new Date(r.started_at * 1000).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }))}</td>` +
+    `<td title="${esc(r.mission)}">${r.recording ? '<span class="tag created">en cours</span>' : ""}${esc(r.mission)}</td>` +
+    `<td>${esc(r.world)}</td><td>${fmtTime(r.duration)}</td><td>${fmtSize(r.bytes)}</td></tr>`).join("");
+}
+
+async function openReplay(id) {
+  toast("Chargement de l'enregistrement…");
+  let text;
+  try {
+    const r = await fetch(`/replays/${encodeURIComponent(id)}`);
+    if (!r.ok) throw new Error(r.status);
+    text = await r.text();
+  } catch {
+    toast("Impossible de lire cet enregistrement");
+    return;
+  }
+  const rp = { id, header: null, frames: [], events: [], commands: [], keyframes: [], store: null, index: -1, t: 0, playing: false, lastNow: 0 };
+  for (const line of text.split("\n")) {
+    if (!line) continue;
+    let o;
+    try { o = JSON.parse(line); } catch { continue; } // a game in progress may end on a half-written line
+    if (o.type === "header") rp.header = o;
+    else if (o.type === "frame") rp.frames.push(o);
+    else if (o.type === "event") rp.events.push(o);
+    else if (o.type === "command") rp.commands.push(o);
+  }
+  if (!rp.header || !rp.frames.length) { toast("Enregistrement vide : la partie n'avait pas encore envoyé d'état"); return; }
+  rp.entities = rp.header.entities;
+  const store = Object.fromEntries(rp.entities.map((e) => [e.name, {}]));
+  rp.frames.forEach((f, i) => {
+    applyFrame(rp, store, f);
+    if (i % KEYFRAME_EVERY === 0) rp.keyframes.push(structuredClone(store));
+  });
+  rp.start = rp.frames[0].t;
+  rp.end = rp.frames.at(-1).t;
+  rp.moments = [
+    ...rp.events.filter((e) => S.replayRole[e.event] === "moment").map((e) => ({ t: e.time ?? 0, kind: e.event, e })),
+    ...rp.commands.map((c) => ({ t: c.t, kind: "command", c })),
+  ].sort((a, b) => a.t - b.t);
+  rp.traces = rp.events.filter((e) => S.replayRole[e.event] === "trace" && e.data?.pos?.length && e.data?.dir?.length).sort((a, b) => a.time - b.time);
+  if (S.state?.world?.world !== rp.header.world) S.view = null;
+  S.replay = rp;
+  S.shots = [];
+  S.overlay = null;
+  select(null);
+  document.body.classList.add("replay");
+  $("#replaybar").classList.add("show");
+  $("#rp-name").textContent = `Revue · ${rp.header.mission} · ${rp.header.world}`;
+  $("#rp-name").title = new Date(rp.header.started_at * 1000).toLocaleString("fr-FR");
+  const kinds = [...new Set(rp.moments.map((m) => m.kind).filter((k) => k !== "command"))];
+  $("#rev-filter").innerHTML = '<option value="">Tous</option><option value="command">Ordres reçus</option>' + kinds.map((k) => `<option>${esc(k)}</option>`).join("");
+  seekReplay(rp.start);
+  setPlaying(false);
+  renderReplayList();
+  renderMoments();
+}
+
+function closeReplay() {
+  S.replay = null;
+  S.shots = [];
+  S.overlay = null;
+  document.body.classList.remove("replay");
+  $("#replaybar").classList.remove("show");
+  $("#rev-moments").style.display = "none";
+  if (S.live) {
+    if (S.state?.world?.world !== S.live.world?.world) S.view = null;
+    applyState(S.live);
+  } else S.state = null;
+  renderReplayList();
+  S.dirty = true;
+}
+
+function applyFrame(rp, store, f) {
+  for (const ent of rp.entities) {
+    const set = f.set?.[ent.name];
+    if (set && !ent.multiple) Object.assign(store[ent.name], set);
+    else if (set) for (const [k, fields] of Object.entries(set)) store[ent.name][k] = Object.assign(store[ent.name][k] ?? {}, fields);
+    for (const k of f.del?.[ent.name] ?? []) delete store[ent.name][k];
+  }
+}
+
+// Index of the last frame at or before t.
+function frameAt(rp, t) {
+  let lo = 0, hi = rp.frames.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (rp.frames[mid].t <= t) lo = mid; else hi = mid - 1;
+  }
+  return lo;
+}
+
+// Index of the first item whose time is after t.
+function after(list, t, time) {
+  let lo = 0, hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (time(list[mid]) <= t) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
+function seekReplay(t, playing = false) {
+  const rp = S.replay;
+  rp.t = Math.min(rp.end, Math.max(rp.start, t));
+  const i = frameAt(rp, rp.t);
+  if (!rp.store || i < rp.index || i - rp.index > KEYFRAME_EVERY) {
+    const k = Math.floor(i / KEYFRAME_EVERY);
+    rp.store = structuredClone(rp.keyframes[k]);
+    rp.index = k * KEYFRAME_EVERY;
+  }
+  while (rp.index < i) applyFrame(rp, rp.store, rp.frames[++rp.index]);
+  if (!playing) S.shots = [];
+  showReplayState();
+}
+
+// The state at rp.t: the last frame, with positions and headings moved toward the next frame.
+function showReplayState() {
+  const rp = S.replay, store = rp.store, f0 = rp.frames[rp.index], next = rp.frames[rp.index + 1];
+  const a = next ? Math.min(1, Math.max(0, (rp.t - f0.t) / Math.max(0.001, next.t - f0.t))) : 0;
+  const st = { type: "state", replay: true };
+  for (const ent of rp.entities) {
+    if (!ent.multiple) { st[ent.name] = { ...store[ent.name] }; continue; }
+    const moves = a ? next.set?.[ent.name] : null;
+    st[ent.name] = Object.entries(store[ent.name]).map(([k, e]) => {
+      const n = moves?.[k];
+      if (!n || (!n.pos && n.dir === undefined)) return e;
+      const out = { ...e };
+      if (n.pos && e.pos) out.pos = e.pos.map((v, j) => v + ((n.pos[j] ?? v) - v) * a);
+      if (n.dir !== undefined && e.dir !== undefined) out.dir = (e.dir + ((((n.dir - e.dir) % 360) + 540) % 360 - 180) * a + 360) % 360;
+      return out;
+    });
+  }
+  if (st.world) st.world.time = rp.t;
+  applyState(st);
+  $("#rp-time").textContent = `${fmtTime(rp.t - rp.start)} / ${fmtTime(rp.end - rp.start)}`;
+}
+
+function tickReplay(now) {
+  const rp = S.replay;
+  const dt = rp.lastNow ? Math.min(0.25, (now - rp.lastNow) / 1000) : 0;
+  rp.lastNow = now;
+  if (!rp.playing || !dt) return;
+  const t0 = rp.t;
+  const t1 = Math.min(rp.end, t0 + dt * Number($("#rp-speed").value));
+  // Shots fired during the stretch just played become tracers.
+  for (let i = after(rp.traces, t0, (e) => e.time); i < rp.traces.length && rp.traces[i].time <= t1; i++) {
+    const e = rp.traces[i];
+    S.shots.push({ pos: e.data.pos, dir: e.data.dir, kind: e.data.kind, side: e.data.side, t: now });
+  }
+  if (S.shots.length > 400) S.shots.splice(0, S.shots.length - 400);
+  seekReplay(t1, true);
+  if (t1 >= rp.end) setPlaying(false);
+}
+
+function setPlaying(on) {
+  const rp = S.replay;
+  if (!rp) return;
+  if (on && rp.t >= rp.end) seekReplay(rp.start);
+  rp.playing = on;
+  rp.lastNow = 0;
+  $("#rp-play").textContent = on ? "❚❚" : "▶";
+}
+
+const rpLine = $("#rp-line");
+const lctx = rpLine.getContext("2d");
+
+function drawTimeline() {
+  const rp = S.replay;
+  const dpr = window.devicePixelRatio || 1;
+  const w = rpLine.clientWidth, h = rpLine.clientHeight;
+  if (rpLine.width !== Math.round(w * dpr) || rpLine.height !== Math.round(h * dpr)) { rpLine.width = Math.round(w * dpr); rpLine.height = Math.round(h * dpr); }
+  lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  lctx.clearRect(0, 0, w, h);
+  const span = Math.max(0.001, rp.end - rp.start);
+  const x = (t) => ((t - rp.start) / span) * w;
+  lctx.fillStyle = "#2a323c";
+  lctx.fillRect(0, h / 2 - 2, w, 4);
+  lctx.fillStyle = "#e8b84a66";
+  lctx.fillRect(0, h / 2 - 2, x(rp.t), 4);
+  for (const m of rp.moments) {
+    lctx.fillStyle = MOMENT_COLOR[m.kind] ?? "#3ec46d";
+    lctx.fillRect(Math.round(x(m.t)), m.kind === "command" ? 2 : h / 2 + 3, 1.5, m.kind === "command" ? h / 2 - 5 : h / 2 - 5);
+  }
+  lctx.fillStyle = "#fff";
+  lctx.fillRect(Math.round(x(rp.t)) - 1, 0, 2, h);
+}
+
+const timeAtX = (px) => S.replay.start + Math.min(1, Math.max(0, px / rpLine.clientWidth)) * (S.replay.end - S.replay.start);
+
+function momentLabel(m) {
+  if (m.c) return `ordre ${m.c.cmd} (${m.c.source}) ${m.c.ok ? "réussi" : `échoué : ${m.c.error?.code ?? "?"}`}`;
+  return `${m.kind} ${eventSummary(m.e.data)}`;
+}
+
+function renderMoments() {
+  const rp = S.replay;
+  $("#rev-moments").style.display = rp ? "block" : "none";
+  if (!rp) return;
+  const f = $("#rev-filter").value;
+  const list = rp.moments.filter((m) => !f || m.kind === f);
+  $("#momlist").innerHTML = list.length ? list.slice(0, 1500).map((m) => {
+    const i = rp.moments.indexOf(m);
+    if (!m.c) return `<div class="ev" data-i="${i}" data-t="${m.t}"><span class="t">${fmtTime(m.t - rp.start)}</span><span class="tag ${esc(m.kind)}">${esc(m.kind)}</span>${esc(eventSummary(m.e.data))}</div>`;
+    const c = m.c;
+    const answer = c.ok ? JSON.stringify(c.result) : `${c.error?.code} : ${c.error?.message}`;
+    return `<div class="ev" data-i="${i}" data-t="${m.t}"><span class="t">${fmtTime(m.t - rp.start)}</span><span class="tag command">ordre</span><b>${esc(c.cmd)}</b> ` +
+      `<span class="muted">${esc(c.source)} · ${c.ok ? "ok" : "erreur"}</span><code>${esc(JSON.stringify(c.args))}\n→ ${esc(answer)}</code></div>`;
+  }).join("") + (list.length > 1500 ? `<div class="muted">${list.length - 1500} autres : filtrez par type.</div>` : "") : '<div class="muted">Aucun moment de ce type.</div>';
+  markMoments();
+}
+
+function markMoments() {
+  const t = S.replay?.t ?? 0;
+  for (const el of $("#momlist").children) if (el.dataset.t) el.classList.toggle("future", Number(el.dataset.t) > t);
+}
+
+function goToMoment(m) {
+  seekReplay(m.t - 3);
+  // A spatial question is drawn again with the answer the game gave then.
+  if (m.c?.ok && ANALYSES.includes(m.c.cmd) && !m.c.result?.truncated) S.overlay = { cmd: m.c.cmd, args: m.c.args, result: m.c.result, t: performance.now() };
+  const p = m.c?.args?.pos ?? m.c?.args?.from ?? m.e?.data?.pos;
+  if (Array.isArray(p) && p.length >= 2 && S.view) { S.view.cx = p[0]; S.view.cy = p[1]; }
+  S.dirty = true;
 }
 
 // ------------------------------------------------------------------ map
@@ -760,7 +1057,8 @@ function fitInitial() {
 const toScreen = (p) => [(p[0] - S.view.cx) * S.view.scale + W / 2, H / 2 - (p[1] - S.view.cy) * S.view.scale];
 const toWorld = (x, y) => [(x - W / 2) / S.view.scale + S.view.cx, (H / 2 - y) / S.view.scale + S.view.cy];
 
-function frame() {
+function frame(now) {
+  if (S.replay) { tickReplay(now); drawTimeline(); }
   // Fading tracers need a redraw every frame while some are on screen.
   if (S.layers.shots && S.shots.length) S.dirty = true;
   if (S.dirty && S.view) { draw(); S.dirty = false; }
@@ -1286,8 +1584,28 @@ for (const b of document.querySelectorAll(".tabs button")) {
     document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x.id === b.dataset.tab));
     renderSide();
     renderCatalog();
+    if (b.dataset.tab === "t-rev") loadReplays();
   };
 }
+$("#rev-refresh").onclick = loadReplays;
+$("#revtable").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-rid]"); if (tr) openReplay(tr.dataset.rid); });
+$("#rev-filter").onchange = renderMoments;
+$("#momlist").addEventListener("click", (e) => { const el = e.target.closest("[data-i]"); if (el) goToMoment(S.replay.moments[Number(el.dataset.i)]); });
+$("#rp-play").onclick = () => setPlaying(!S.replay?.playing);
+$("#rp-back").onclick = () => S.replay && seekReplay(S.replay.t - 10);
+$("#rp-fwd").onclick = () => S.replay && seekReplay(S.replay.t + 10);
+$("#rp-live").onclick = closeReplay;
+let scrubbing = false;
+rpLine.addEventListener("pointerdown", (e) => { if (!S.replay) return; scrubbing = true; rpLine.setPointerCapture(e.pointerId); seekReplay(timeAtX(e.offsetX)); });
+rpLine.addEventListener("pointermove", (e) => {
+  if (!S.replay) return;
+  if (scrubbing) { seekReplay(timeAtX(e.offsetX)); return; }
+  // Tooltip: the key moment under the pointer, if any.
+  const t = timeAtX(e.offsetX), slack = (4 / rpLine.clientWidth) * (S.replay.end - S.replay.start);
+  const m = S.replay.moments.find((x) => Math.abs(x.t - t) <= slack);
+  rpLine.title = `${fmtTime(t - S.replay.start)}${m ? " · " + momentLabel(m) : ""}`;
+});
+rpLine.addEventListener("pointerup", () => { scrubbing = false; });
 $("#entsub").addEventListener("click", (e) => { const k = e.target.dataset?.k; if (k) { S.entTab = k; renderEntities(); } });
 $("#enttable").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-id]"); if (tr) select(tr.dataset.id, true); });
 $("#entfilter").oninput = renderEntities;
@@ -1305,6 +1623,7 @@ $("#sendraw").onclick = () => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && $("#t-cmd").contains(document.activeElement)) { e.preventDefault(); sendForm(); }
   if (e.key === "Escape") { if (S.placing) setPlacing(false); else select(null); }
+  if (e.key === " " && S.replay && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(document.activeElement?.tagName ?? "")) { e.preventDefault(); setPlaying(!S.replay.playing); }
 });
 $("#v-me").onclick = () => { const m = me(); if (m && S.view) { S.view.cx = m.pos[0]; S.view.cy = m.pos[1]; S.view.scale = Math.max(S.view.scale, Math.min(W, H) / 500); S.dirty = true; } else toast("Aucun joueur connecté"); };
 $("#v-all").onclick = () => { if (!S.state) return; const size = S.state.world?.size || 8192; S.view = { cx: size / 2, cy: size / 2, scale: Math.min(W, H) / size }; S.dirty = true; };

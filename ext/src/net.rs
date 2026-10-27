@@ -189,6 +189,8 @@ fn handle(bridge: &'static Bridge, mut stream: TcpStream) {
                     "GET /health": "gateway and game status",
                     "GET /state": "latest state snapshot",
                     "GET /events?since=<seq>&limit=<n>": "events after a sequence number",
+                    "GET /replays": "recorded games, newest first",
+                    "GET /replays/<id>": "one recording (one JSON object per line)",
                     "GET /schema": "command descriptions as LLM tool definitions",
                     "POST /command": "{\"cmd\": name, \"args\": {...}} and wait for the result",
                     "WebSocket /": "live state and events; send {\"type\":\"command\",...}"
@@ -220,6 +222,14 @@ fn handle(bridge: &'static Bridge, mut stream: TcpStream) {
                 }
             }
         }
+        ("GET", "/replays") => {
+            let current = crate::bridge::lock(&bridge.replay).current_id();
+            respond(&mut stream, 200, &crate::replay::list(current.as_deref()).to_string());
+        }
+        ("GET", path) if path.starts_with("/replays/") => match crate::replay::read(&path["/replays/".len()..]) {
+            Some(text) => respond_typed(&mut stream, 200, "application/x-ndjson", &text),
+            None => respond(&mut stream, 404, &error_body("not_found", "no recording with this id; GET /replays lists them")),
+        },
         ("GET", "/catalog") => {
             let catalog = crate::bridge::lock(&bridge.catalog).get();
             match catalog {
@@ -254,7 +264,8 @@ fn http_command(bridge: &'static Bridge, stream: &mut TcpStream, req: Request) {
     };
     let (tx, rx) = mpsc::channel();
     let cmd = msg["cmd"].as_str().unwrap_or_default();
-    if let Err((e, _)) = bridge.submit(cmd, &msg["args"], Waiter::Http(tx)) {
+    let source = msg["source"].as_str().unwrap_or("http");
+    if let Err((e, _)) = bridge.submit(cmd, &msg["args"], source, Waiter::Http(tx)) {
         let reply = e.to_json();
         respond(stream, status_for(&reply), &reply.to_string());
         return;
@@ -334,7 +345,8 @@ fn on_client_message(bridge: &'static Bridge, client: &Arc<Client>, text: &str) 
         "command" => {
             let id = msg.get("id").cloned().unwrap_or(Value::Null);
             let cmd = msg["cmd"].as_str().unwrap_or_default();
-            if let Err((e, waiter)) = bridge.submit(cmd, &msg["args"], Waiter::Ws(client.clone(), id)) {
+            let source = msg["source"].as_str().unwrap_or("websocket");
+            if let Err((e, waiter)) = bridge.submit(cmd, &msg["args"], source, Waiter::Ws(client.clone(), id)) {
                 bridge.deliver(waiter, e.to_json());
             }
         }

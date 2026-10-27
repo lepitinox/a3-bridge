@@ -13,5 +13,8 @@
   {"key": "map_export",             "type": "boolean", "default": true,  "to_sqf": true,  "description": "Construire la carte de fond de la page web à la première partie sur chaque carte (mise en cache ensuite)."},
   {"key": "map_height_cell_m",      "type": "number",  "default": 16,    "to_sqf": true,  "description": "Taille visée d'une case de relief, en mètres."},
   {"key": "map_max_cells",          "type": "number",  "default": 512,   "to_sqf": true,  "description": "Nombre maximal de cases de relief par côté (limite la durée de l'export sur les grandes cartes)."},
-  {"key": "map_forest_cell_m",      "type": "number",  "default": 64,    "to_sqf": true,  "description": "Taille d'une case de densité de forêt, en mètres (256 cases par côté au plus)."}
+  {"key": "map_forest_cell_m",      "type": "number",  "default": 64,    "to_sqf": true,  "description": "Taille d'une case de densité de forêt, en mètres (256 cases par côté au plus)."},
+  {"key": "replay_record",          "type": "boolean", "default": true,  "to_sqf": false, "description": "Enregistrer chaque partie sur le disque (dossier a3_bridge_replays, à côté du journal a3_bridge.log) pour la revoir dans l'onglet Revue de la page web."},
+  {"key": "replay_interval_ms",     "type": "number",  "default": 1000,  "to_sqf": false, "description": "Intervalle entre deux images de l'enregistrement, en millisecondes (la page interpole les mouvements entre deux images)."},
+  {"key": "replay_max_files",       "type": "number",  "default": 50,    "to_sqf": false, "description": "Nombre d'enregistrements gardés : les plus anciens sont supprimés au début d'une nouvelle partie (0 = tout garder)."}
 ]

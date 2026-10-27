@@ -180,6 +180,39 @@ const overlay = await js(`S.overlay && S.overlay.cmd`);
 check(overlay === "query_cover", "query_cover result drawn as an overlay", String(overlay));
 await shot("18-cover.png");
 
+// 11. Review tab: the game in progress is recorded and can be replayed on the map.
+await sleep(1500);
+await js(`document.querySelector('[data-tab="t-rev"]').click()`);
+await sleep(800);
+const recRows = await js(`[...document.querySelectorAll("#revtable tr[data-rid]")].map(r => r.innerText.replace(/\\s+/g, " "))`);
+check(recRows.length > 0 && /en cours/.test(recRows[0]), "review tab lists the game being recorded", recRows[0]);
+await js(`document.querySelector("#revtable tr[data-rid]").click()`);
+await sleep(1500);
+const rev = await js(`({on: !!S.replay, bar: document.querySelector("#replaybar").classList.contains("show"), frames: S.replay?.frames.length, replayState: !!S.state?.replay,
+  units: S.state?.units.length, ui: S.replay?.moments.filter(m => m.c?.source === "ui").map(m => m.c.cmd), moments: document.querySelectorAll("#momlist .ev").length})`);
+check(rev.on && rev.bar && rev.replayState && rev.frames > 5 && rev.units > 0, "opening a recording shows it on the map with the playback bar", JSON.stringify({ frames: rev.frames, units: rev.units }));
+check(rev.ui.includes("spawn_vehicle") && rev.ui.includes("query_cover") && rev.moments > 0, "orders sent from this page are key moments", rev.ui.join(", "));
+const live = await js(`S.live.units.length`);
+check(rev.units < live, "the recording starts as the game did, before the soldiers added since", `${rev.units} units at the start, ${live} now`);
+await js(`seekReplay((S.replay.start + S.replay.end) / 2)`);
+await js(`document.querySelector("#rp-speed").value = "5"; document.querySelector("#rp-play").click()`);
+const t0 = await js(`S.replay.t`);
+await sleep(1500);
+const played = await js(`({t: S.replay.t, playing: S.replay.playing, shots: S.shots.length, time: document.querySelector("#rp-time").textContent})`);
+check(played.t > t0 + 3, "playback moves time forward", `${t0.toFixed(1)} -> ${played.t.toFixed(1)} s (${played.time})`);
+check(played.shots > 0, "recorded shots replayed as tracers", `${played.shots} tracers`);
+await shot("19-review.png");
+await js(`setPlaying(false)`);
+await js(`(() => { const i = S.replay.moments.findIndex(m => m.c?.cmd === "query_cover"); document.querySelector('#momlist [data-i="' + i + '"]').click(); })()`);
+await sleep(300);
+const back = await js(`({overlay: S.overlay?.cmd, t: S.replay.t, at: S.replay.moments.find(m => m.c?.cmd === "query_cover").t})`);
+check(back.overlay === "query_cover" && Math.abs(back.t - (back.at - 3)) < 1.5, "clicking an analysis moment jumps there and redraws its answer", JSON.stringify(back));
+await shot("20-review-moment.png");
+await js(`document.querySelector("#rp-live").click()`);
+await sleep(500);
+const after = await js(`({replay: S.replay, bar: document.querySelector("#replaybar").classList.contains("show"), live: S.state === S.live || !S.state.replay})`);
+check(after.replay === null && !after.bar && after.live, "back to the live game");
+
 check(errors.length === 0, "no JavaScript errors", errors.join(" | "));
 await cdp("Browser.close").catch(() => {});
 browser.kill();

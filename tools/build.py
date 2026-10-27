@@ -29,7 +29,7 @@ TABLES = {
     "command_params": ["command", "order", "name", "type", "required", "default", "examples", "description"],
     "entities": ["name", "order", "multiple", "source", "description"],
     "state_fields": ["entity", "order", "field", "type", "sqf", "description"],
-    "events": ["name", "source", "engine_event", "params", "filter", "client_extra", "description"],
+    "events": ["name", "source", "engine_event", "params", "filter", "client_extra", "replay", "description"],
     "event_fields": ["event", "order", "field", "type", "sqf", "description"],
     "settings": ["key", "type", "default", "to_sqf", "description"],
     "effects": ["name", "kind", "class", "altitude", "speed", "description"],
@@ -46,6 +46,8 @@ RELAYED_SOURCES = ("client_eh", "player_eh")
 # Engine-provided locals that expressions may use besides the handler's parameters.
 MAGIC_LOCALS = {"_x", "_y", "_this", "_forEachIndex"}
 EFFECT_KINDS = {"projectile", "smoke", "flare", "mine"}
+# How the review page shows an event: a key moment on the timeline, a tracer on the map, or only in the list.
+REPLAY_ROLES = {"moment", "trace", "list"}
 IDENT = re.compile(r"^[a-z][a-z0-9_]*$")
 SQF_LOCAL = re.compile(r"\b_[A-Za-z]\w*")
 CORE_FUNCTIONS = sorted(p.stem[3:] for p in (SRC / "core").glob("fn_*.sqf"))
@@ -210,6 +212,8 @@ def validate(t):
     unique("events", lambda r: r["name"], "event")
     unique("event_fields", lambda r: (r["event"], r["field"]), "field")
     for i, r in enumerate(t["events"]):
+        if r["replay"] not in REPLAY_ROLES:
+            problems.add("events", i, f"replay must be one of {sorted(REPLAY_ROLES)}")
         if r["source"] not in EVENT_SOURCES:
             problems.add("events", i, f"unknown source {r['source']!r}")
         internal = r["source"] == "internal"
@@ -558,7 +562,7 @@ def gen_spec(t):
             for e in by_order(t["entities"])
         ],
         "events": [
-            {"name": e["name"], "fields": [f["field"] for f in by_order(t["event_fields"], "event", e["name"])]}
+            {"name": e["name"], "replay": e["replay"], "fields": [f["field"] for f in by_order(t["event_fields"], "event", e["name"])]}
             for e in t["events"]
         ],
         "settings": [{"key": s["key"], "type": s["type"], "default": s["default"], "to_sqf": s["to_sqf"]} for s in t["settings"]],
@@ -646,6 +650,20 @@ def gen_protocol(t):
         s.append(f"### `{e['name']}`\n\n{e['description']}\n")
         s.append(md_table(["Champ", "Type", "Description"],
                           [(f"`{f['field']}`", f["type"], f["description"]) for f in by_order(t["event_fields"], "event", e["name"])]) + "\n")
+    s.append("## Enregistrements (`GET /replays`)\n\nChaque partie est enregistrée (réglage `replay_record`) dans "
+             "`%LOCALAPPDATA%\\Arma 3\\a3_bridge_replays`, un objet JSON par ligne. `GET /replays` les liste (le plus récent "
+             "d'abord, avec durée et taille) ; `GET /replays/<id>` renvoie le fichier.\n\n"
+             "- `{\"type\": \"header\", \"mission\", \"world\", \"started_at\", \"interval_ms\", \"entities\": [...]}` ;\n"
+             "- `{\"type\": \"frame\", \"t\": temps, \"set\": {\"units\": {\"u12\": {champs modifiés}}, \"world\": {...}}, "
+             "\"del\": {\"units\": [\"u5\"]}}` toutes les `replay_interval_ms` : seulement ce qui a changé depuis l'image "
+             "précédente (positions arrondies à 10 cm), la première image contient tout ;\n"
+             "- chaque événement, tel qu'envoyé en direct ;\n"
+             "- `{\"type\": \"command\", \"t\", \"cmd\", \"source\", \"args\", \"ok\", \"result\" ou \"error\"}` pour chaque ordre "
+             "exécuté (`source` : `ui`, `mcp`, `http`, `websocket`, ou la valeur `source` envoyée avec l'ordre ; "
+             "arguments et réponses coupés au-delà de 4 Ko).\n")
+    s.append("Rôle de chaque événement dans la revue de la page web :\n")
+    s.append(md_table(["Événement", "Revue"], [(f"`{e['name']}`", {"moment": "moment clé (frise et liste)", "trace": "traçante sur la carte",
+                                                                 "list": "enregistré seulement"}[e["replay"]]) for e in t["events"]]) + "\n")
     s.append("## Effets (`spawn_effect`)\n")
     s.append(md_table(["Effet", "Nature", "Classe", "Description"],
                       [(f"`{e['name']}`", e["kind"], f"`{e['class']}`", e["description"]) for e in t["effects"]]) + "\n")

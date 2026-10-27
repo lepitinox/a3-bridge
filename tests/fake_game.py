@@ -377,6 +377,9 @@ def main():
     if (source.parent / "ui").is_dir():
         shutil.copytree(source.parent / "ui", work / "ui")
     (work / "a3_bridge.json").write_text(json.dumps({"port": PORT, "command_timeout_ms": 1500}))
+    # Logs, map cache and recordings go to a throwaway folder instead of the real %LOCALAPPDATA%\Arma 3.
+    (work / "localappdata" / "Arma 3").mkdir(parents=True)
+    os.environ["LOCALAPPDATA"] = str(work / "localappdata")
 
     ext = Extension(dll)
     print("version:", ext.version())

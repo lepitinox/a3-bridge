@@ -8,6 +8,7 @@ mod catalog;
 mod log;
 mod map;
 mod net;
+mod replay;
 mod settings;
 mod spec;
 mod sqf;

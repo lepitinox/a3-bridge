@@ -72,6 +72,10 @@ impl Settings {
         self.values.get(key).and_then(Value::as_f64).unwrap_or(0.0)
     }
 
+    pub fn flag(&self, key: &str) -> bool {
+        self.values.get(key).and_then(Value::as_bool).unwrap_or(false)
+    }
+
     /// Values the SQF side needs, in table order, as an SQF array.
     pub fn sqf_array(&self) -> String {
         let parts: Vec<String> = self.to_sqf.iter().map(|k| sqf::value(&self.values[k]).unwrap_or_else(|_| "0".into())).collect();

@@ -702,6 +702,34 @@ Un joueur s'est déconnecté (multijoueur).
 | `name` | string | Nom du joueur. |
 | `uid` | string | Identifiant Steam. |
 
+## Enregistrements (`GET /replays`)
+
+Chaque partie est enregistrée (réglage `replay_record`) dans `%LOCALAPPDATA%\Arma 3\a3_bridge_replays`, un objet JSON par ligne. `GET /replays` les liste (le plus récent d'abord, avec durée et taille) ; `GET /replays/<id>` renvoie le fichier.
+
+- `{"type": "header", "mission", "world", "started_at", "interval_ms", "entities": [...]}` ;
+- `{"type": "frame", "t": temps, "set": {"units": {"u12": {champs modifiés}}, "world": {...}}, "del": {"units": ["u5"]}}` toutes les `replay_interval_ms` : seulement ce qui a changé depuis l'image précédente (positions arrondies à 10 cm), la première image contient tout ;
+- chaque événement, tel qu'envoyé en direct ;
+- `{"type": "command", "t", "cmd", "source", "args", "ok", "result" ou "error"}` pour chaque ordre exécuté (`source` : `ui`, `mcp`, `http`, `websocket`, ou la valeur `source` envoyée avec l'ordre ; arguments et réponses coupés au-delà de 4 Ko).
+
+Rôle de chaque événement dans la revue de la page web :
+
+| Événement | Revue |
+|---|---|
+| `mission_started` | moment clé (frise et liste) |
+| `killed` | moment clé (frise et liste) |
+| `fired` | traçante sur la carte |
+| `player_fired` | traçante sur la carte |
+| `hit` | enregistré seulement |
+| `waypoint_completed` | enregistré seulement |
+| `enemy_detected` | moment clé (frise et liste) |
+| `combat_changed` | moment clé (frise et liste) |
+| `group_fleeing` | moment clé (frise et liste) |
+| `created` | enregistré seulement |
+| `deleted` | enregistré seulement |
+| `player_connected` | moment clé (frise et liste) |
+| `chat` | moment clé (frise et liste) |
+| `player_disconnected` | moment clé (frise et liste) |
+
 ## Effets (`spawn_effect`)
 
 | Effet | Nature | Classe | Description |
@@ -860,3 +888,6 @@ Couleurs de marqueurs (set_marker) ; toutes, car les couleurs de camp courantes 
 | `map_height_cell_m` | 16 | Taille visée d'une case de relief, en mètres. |
 | `map_max_cells` | 512 | Nombre maximal de cases de relief par côté (limite la durée de l'export sur les grandes cartes). |
 | `map_forest_cell_m` | 64 | Taille d'une case de densité de forêt, en mètres (256 cases par côté au plus). |
+| `replay_record` | true | Enregistrer chaque partie sur le disque (dossier a3_bridge_replays, à côté du journal a3_bridge.log) pour la revoir dans l'onglet Revue de la page web. |
+| `replay_interval_ms` | 1000 | Intervalle entre deux images de l'enregistrement, en millisecondes (la page interpole les mouvements entre deux images). |
+| `replay_max_files` | 50 | Nombre d'enregistrements gardés : les plus anciens sont supprimés au début d'une nouvelle partie (0 = tout garder). |

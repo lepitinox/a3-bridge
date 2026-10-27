@@ -165,6 +165,25 @@ if (!live) {
   check(del.status === 200, "delete_marker", JSON.stringify(del.body.result));
 }
 
+// 6b. Recording: the game in progress is on disk, as a header then delta frames, events and commands.
+{
+  const list = await (await fetch(`${base}/replays`)).json();
+  const cur = list.replays.find((r) => r.recording);
+  check(cur && cur.id === list.recording, "the running game is being recorded", JSON.stringify(list).slice(0, 300));
+  if (cur) {
+    const text = await (await fetch(`${base}/replays/${cur.id}`)).text();
+    const lines = text.split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    const frames = lines.filter((l) => l.type === "frame");
+    check(lines[0]?.type === "header" && lines[0].entities?.some((e) => e.name === "units"), "recording starts with a header");
+    check(frames.length >= 2 && frames[0].set.units && Object.keys(frames[0].set.units).length > 0, "first frame holds every unit", `${frames.length} frames`);
+    check(frames.length < 2 || JSON.stringify(frames.at(-1)).length < JSON.stringify(frames[0]).length, "later frames only hold changes");
+    check(lines.some((l) => l.type === "event") && lines.some((l) => l.type === "command" && typeof l.ok === "boolean" && l.source === "http"), "events and commands are recorded");
+    check(cur.duration > 0 && cur.bytes > 0, "list gives duration and size", `${cur.duration} s, ${cur.bytes} bytes`);
+  }
+  const outside = await fetch(`${base}/replays/..%5C..%5Ca3_bridge`);
+  check(outside.status === 404, "recording ids cannot leave the recordings folder");
+}
+
 // 7. Browser and DNS-rebinding protection.
 const fromBrowser = await rawRequest([`GET /health HTTP/1.1`, `Host: 127.0.0.1:${port}`, "Origin: https://evil.example", "Connection: close"]);
 check(fromBrowser.startsWith("HTTP/1.1 403"), "request with Origin refused");

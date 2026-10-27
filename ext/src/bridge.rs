@@ -3,6 +3,7 @@
 
 use crate::catalog::CatalogStore;
 use crate::map::MapStore;
+use crate::replay::Recorder;
 use crate::settings::Settings;
 use crate::spec::{BridgeError, Spec};
 use crate::{log, net, sqf, VERSION};
@@ -85,6 +86,8 @@ pub enum Waiter {
 
 struct Pending {
     cmd: usize,
+    args: Value,
+    source: String,
     deadline: Instant,
     polled: bool,
     waiter: Waiter,
@@ -150,6 +153,7 @@ pub struct Bridge {
     clients: Mutex<Vec<Arc<Client>>>,
     pub maps: Mutex<MapStore>,
     pub catalog: Mutex<CatalogStore>,
+    pub replay: Mutex<Recorder>,
     server: Mutex<Option<Result<(), String>>>,
     next_req: AtomicU64,
     next_client: AtomicU64,
@@ -181,6 +185,7 @@ impl Bridge {
             clients: Mutex::new(Vec::new()),
             maps: Mutex::new(MapStore::default()),
             catalog: Mutex::new(CatalogStore::default()),
+            replay: Mutex::new(Recorder::default()),
             server: Mutex::new(None),
             next_req: AtomicU64::new(0),
             next_client: AtomicU64::new(0),
@@ -216,6 +221,14 @@ impl Bridge {
         for p in dropped {
             self.deliver(p.waiter, BridgeError::new("mission_restarted", "a new scenario started before this command ran").to_json());
         }
+        let mut replay = lock(&self.replay);
+        if self.settings.flag("replay_record") {
+            let max_files = self.settings.num("replay_max_files").max(0.0) as usize;
+            replay.begin(&self.spec, mission, world, dedicated, self.settings.num("replay_interval_ms"), max_files);
+        } else {
+            replay.end();
+        }
+        drop(replay);
         match &server {
             Ok(()) => log::write(format!("scenario '{mission}' on {world} started (dedicated: {dedicated})")),
             Err(e) => log::write(format!("scenario '{mission}' started but the gateway is down: {e}")),
@@ -291,6 +304,8 @@ impl Bridge {
             };
             obj.insert(ent.name.clone(), v);
         }
+        let interval = Duration::from_millis(self.settings.num("replay_interval_ms").max(100.0) as u64);
+        lock(&self.replay).state(&self.spec, &obj, interval);
         let text: Arc<str> = Value::Object(obj).to_string().into();
         lock(&self.inner).state = Some(text.clone());
         for c in lock(&self.clients).iter() {
@@ -323,6 +338,12 @@ impl Bridge {
                 inner.events.pop_front();
             }
         }
+        {
+            let mut replay = lock(&self.replay);
+            for (_, msg) in &fresh {
+                replay.event(msg);
+            }
+        }
         for c in lock(&self.clients).iter() {
             if c.want_events.load(Ordering::Relaxed) {
                 for (_, msg) in &fresh {
@@ -345,13 +366,14 @@ impl Bridge {
             let message = payload.as_str().map(String::from).unwrap_or_else(|| payload.to_string());
             BridgeError::new("execution_error", message).to_json()
         };
+        lock(&self.replay).command(&self.spec.commands[p.cmd].name, &p.args, &p.source, &reply);
         self.deliver(p.waiter, reply);
     }
 
     // ------------------------------------------------------------ network side
 
     /// Validates and queues a command; the result reaches `waiter` later.
-    pub fn submit(&self, cmd: &str, args: &Value, waiter: Waiter) -> Result<u64, (BridgeError, Waiter)> {
+    pub fn submit(&self, cmd: &str, args: &Value, source: &str, waiter: Waiter) -> Result<u64, (BridgeError, Waiter)> {
         let (idx, sqf_args) = match self.spec.build_call(cmd, args) {
             Ok(x) => x,
             Err(e) => return Err((e, waiter)),
@@ -365,7 +387,8 @@ impl Bridge {
         }
         let req = self.next_req.fetch_add(1, Ordering::Relaxed) + 1;
         inner.queue.push_back((req, format!("[\"{req}\",{},{sqf_args}]", sqf::string(cmd))));
-        inner.pending.insert(req, Pending { cmd: idx, deadline: Instant::now() + self.timeout(), polled: false, waiter });
+        let source: String = source.chars().filter(|c| c.is_ascii_graphic()).take(32).collect();
+        inner.pending.insert(req, Pending { cmd: idx, args: args.clone(), source, deadline: Instant::now() + self.timeout(), polled: false, waiter });
         Ok(req)
     }
 
@@ -401,7 +424,9 @@ impl Bridge {
             } else {
                 "the game did not pick the command up in time; it was not run"
             };
-            self.deliver(p.waiter, BridgeError::new("timeout", message).to_json());
+            let reply = BridgeError::new("timeout", message).to_json();
+            lock(&self.replay).command(&self.spec.commands[p.cmd].name, &p.args, &p.source, &reply);
+            self.deliver(p.waiter, reply);
         }
     }
 
@@ -428,6 +453,7 @@ impl Bridge {
             "clients": lock(&self.clients).len(),
             "map": lock(&self.maps).status_json(),
             "catalog": lock(&self.catalog).status_json(),
+            "recording": lock(&self.replay).current_id(),
             "settings": self.settings.as_json(),
         })
     }

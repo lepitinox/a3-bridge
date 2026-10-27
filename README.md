@@ -67,6 +67,18 @@ questions sur la carte).
 
 ![Tirs et analyse de couverture](docs/images/tirs-et-couverture.png)
 
+### Revoir une partie
+
+Chaque partie est enregistrée automatiquement dans `%LOCALAPPDATA%\Arma 3\a3_bridge_replays` (une image par seconde
+qui ne garde que ce qui a bougé, plus les événements et les ordres reçus avec leur provenance : page web, MCP...).
+L'onglet **Revue** de la page les liste ; en choisir une la rejoue sur la carte avec une barre de lecture (×1 à ×60,
+frise des moments clés, glisser pour se déplacer, Espace pour lecture/pause). La liste des moments clés (morts, chat,
+repérages, ordres reçus avec leurs arguments et la réponse du jeu) permet de voir ce que l'IA a décidé et quand ; une
+question sur le terrain y réaffiche sa réponse sur la carte. « Retour au direct » revient à la partie en cours.
+Réglages : `replay_record`, `replay_interval_ms`, `replay_max_files` (50 parties gardées par défaut).
+
+![Revue d'une partie](docs/images/revue.png)
+
 ### Piloter le jeu avec Claude (MCP)
 
 `mcp/arma_mcp.mjs` expose tous les ordres comme outils, plus des outils de lecture : situation filtrée par zone ou
@@ -86,7 +98,8 @@ Claude Desktop (`claude_desktop_config.json`) :
 ### API
 
 - `POST /command` avec `{"cmd": "spawn_unit", "args": {...}}`, ou en WebSocket `{"type": "command", "id": ..., "cmd": ..., "args": {...}}`
-- `GET /state`, `GET /events?since=N`, `GET /health`, `GET /catalog`, `GET /map/<monde>`, `GET /schema`, `GET /spec`
+- `GET /state`, `GET /events?since=N`, `GET /health`, `GET /catalog`, `GET /map/<monde>`, `GET /replays`,
+  `GET /replays/<id>`, `GET /schema`, `GET /spec`
 - WebSocket `ws://127.0.0.1:8765/` : état et événements en continu
 
 Le détail de chaque ordre, champ, événement et réglage est dans [docs/PROTOCOL.md](docs/PROTOCOL.md).

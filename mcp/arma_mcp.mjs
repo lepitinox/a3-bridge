@@ -32,7 +32,7 @@ async function get(path) {
 }
 
 async function command(cmd, args) {
-  const r = await fetch(`${BASE}/command`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cmd, args }) });
+  const r = await fetch(`${BASE}/command`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cmd, args, source: "mcp" }) });
   return r.json();
 }
 
